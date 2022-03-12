@@ -21,39 +21,25 @@ const sortByHue = (colorArray) => {
     });
 };
 
-// array of distances between colors after sorting by hue
+// array of distances between all points in a color array
 const distances = (colorArray) => {
-    const distanceArray = [];
-    const sortedColors = sortByHue(colorArray);
-    for (let i = 0; i < sortedColors.length; i++) {
-        distanceArray.push(
-            distance(
-                sortedColors[(i + 1) % sortedColors.length],
-                sortedColors[i]
-            )
-        );
+    const distances = [];
+    for (let i = 0; i < colorArray.length; i++) {
+        for (let j = i + 1; j < colorArray.length; j++) {
+            distances.push(distance(colorArray[i], colorArray[j]));
+        }
     }
-    return distanceArray;
-};
+    return distances;
+}
 
-// get average distances between colors in one array
-const averageDistance = (colorArray) => {
-    const distanceArray = distances(colorArray);
-    return (
-        distanceArray.reduce((sum, distance) => {
-            return sum + distance;
-        }) / distanceArray.length
-    );
-};
+// get average of interger array
+const average = (array) => array.reduce((a, b) => a + b) / array.length;
 
-// get average variance of distances between colors in one array
-const variance = (colorArray) => {
-    const distanceArray = distances(colorArray);
-    const average = averageDistance(colorArray);
-    return distanceArray.reduce((sum, distance) => {
-        return sum + Math.pow(distance - average, 2);
-    });
-};
+// get the distance between the highest and lowest values in an array
+const range = (array) => {
+    const sorted = array.sort((a, b) => a - b);
+    return sorted[sorted.length - 1] - sorted[0];
+}
 
 // produces a color a small random distance away from the given color
 const randomNearbyColor = (color) => {
@@ -71,58 +57,39 @@ const randomNearbyColor = (color) => {
 const sigmoid = (x) => 1 / (1 + Math.abs(x));
 
 const evaluateColorArray = (colorArray) => {
-    const averageScore = sigmoid(averageDistance(colorArray)); // higher average distance is better
-    const varianceScore = 1 - sigmoid(variance(colorArray)); // lower variance is better
+    const averageScore = average(distances(colorArray)); // higher average distance is better
+    const rangeScore = range(distances(colorArray)); // lower range is better
     return {
         averageScore,
-        varianceScore,
+        rangeScore,
     };
 };
-
 
 // find n colors that are equidistant from each other
 // using simulated annealing
 const optimize = (n = 5) => {
     // initialize colors
     const colors = [];
-    colors.push(chroma('#635bff'))
-    for (let i = 1; i < n; i++) {
+    for (let i = 0; i < n; i++) {
         colors.push(randomColor());
     }
 
     // intialize hyperparameters
     let temperature = 1;
-    const coolingRate = 0.0001;
-    const varianceWeight = 1;
+    const coolingRate = 0.001;
+    const rangeWeight = 1;
     const averageWeight = 1;
 
     // iteration loop
     while (temperature > 0) {
-        // get new colors
-        const newColors = colors.map((color) => {
-            return randomNearbyColor(color);
-        });
+        // for each color
+        for (let i = 0; i < colors.length; i++) {
+            // copy old colors
+            const newColors = colors.map((color) => color);
+            // move the current color randomly
+            newColors[i] = randomNearbyColor(newColors[i]);
 
-        // get evaluation of new colors
-        const newEvaluation = evaluateColorArray(newColors);
-        // get evaluation of old colors
-        const oldEvaluation = evaluateColorArray(colors);
-        const varianceDiff = newEvaluation.variance - oldEvaluation.variance;
-        const averageDiff = newEvaluation.average - oldEvaluation.average;
-
-        // calculate acceptance probability
-        const probability = Math.exp(
-            -(
-                varianceWeight * varianceDiff +
-                averageWeight * averageDiff
-            ) / temperature
-        );
-
-        // accept new colors with probability
-        if (Math.random() < probability) {
-            colors.forEach((color, i) => {
-                colors[i] = newColors[i];
-            });
+            // todo: figure out how to evaluate the new colors
         }
 
         // decrease temperature
@@ -133,4 +100,4 @@ const optimize = (n = 5) => {
     return colors;
 };
 
-optimize();
+optimize(5);
