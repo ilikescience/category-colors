@@ -1,45 +1,11 @@
 const chroma = require("chroma-js");
 
 const stripeColors = [
-    "#f5fbff",
-    "#d6ecff",
-    "#a4cdfe",
-    "#7dabf8",
-    "#6c8eef",
-    "#5469d4",
-    "#3d4eac",
-    "#2f3d89",
-    "#212d63",
-    "#131f41",
-    "#efffed",
-    "#cbf4c9",
-    "#85d996",
-    "#33c27f",
-    "#1ea672",
-    "#09825d",
-    "#0e6245",
-    "#0d4b3b",
-    "#0b3733",
-    "#082429",
-    "#fcf9e9",
-    "#f8e5b9",
-    "#efc078",
-    "#e5993e",
-    "#d97917",
-    "#bb5504",
-    "#983705",
-    "#762b0b",
-    "#571f0d",
-    "#3a1607",
-    "#fff8f5",
-    "#fde2dd",
-    "#fbb5b2",
-    "#fa8389",
-    "#ed5f74",
-    "#cd3d64",
-    "#a41c4e",
-    "#80143f",
-    "#5e1039",
+    "#9966FF",
+    "#0055BC",
+    "#00A1C2",
+    "#ED6804",
+    "#B3063D"
 ];
 
 // random from array
@@ -278,9 +244,7 @@ const cost = (state) => {
     const deuteranopiaDistances = distances(state, "Deuteranopia");
     const tritanopiaDistances = distances(state, "Tritanopia");
 
-    const energy = sumOfArray(normalDistances);
-
-    const energyScore =  100 - (energy / (normalDistances.length)); // higher is better
+    const energyScore =  100 - average(normalDistances); // higher is better
     const protanopiaScore = 100 - average(protanopiaDistances); // higher is better
     const deuteranopiaScore = 100 - average(deuteranopiaDistances); // higher is better
     const tritanopiaScore = 100 - average(tritanopiaDistances); // higher is better
@@ -305,6 +269,9 @@ const optimize = (n = 5) => {
     for (let i = 0; i < n; i++) {
         colors.push(randomColor());
     }
+
+    const startColors = Array.from(colors);
+    const startCost = cost(startColors);
 
     // intialize hyperparameters
     let temperature = 1000;
@@ -332,7 +299,12 @@ const optimize = (n = 5) => {
         temperature *= coolingRate;
     }
 
-    console.log(colors.map((color) => color.hex()));
+    console.log(`
+        Start colors: ${startColors.map((color) => color.hex())}
+        Start cost: ${startCost}
+        Final colors: ${colors.map((color) => color.hex())}
+        Final cost: ${cost(colors)}
+        Cost difference: ${cost(colors) - startCost}`);
     return colors;
 };
 
