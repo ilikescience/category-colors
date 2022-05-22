@@ -1,6 +1,6 @@
 const chroma = require("chroma-js");
 
-const stripeColors = [
+const targetColors = [
     "#9966FF",
     "#0055BC",
     "#00A1C2",
@@ -21,13 +21,6 @@ const randomColor = () => {
 
 // measures the distance between two colors
 const distance = (color1, color2) => chroma.deltaE(color1, color2);
-
-// put colors in hue order
-const sortByHue = (colorArray) => {
-    return colorArray.sort((a, b) => {
-        return a.hsl()[0] - b.hsl()[0];
-    });
-};
 
 const getClosestColor = (color, colorArray) => {
     const distances = colorArray.map((c) => distance(color, c));
@@ -52,8 +45,6 @@ const distances = (colorArray, visionSpace = "Normal") => {
 // get average of interger array
 const average = (array) => array.reduce((a, b) => a + b) / array.length;
 
-// get the sum of interger array
-const sumOfArray = (array) => array.reduce((a, b) => a + b);
 
 // get the distance between the highest and lowest values in an array
 const range = (array) => {
@@ -75,28 +66,28 @@ const randomNearbyColor = (color) => {
 };
 
 // average of distances between array of colors and stripe colors
-const averageDistanceFromStripeColors = (colors) => {
+const averageDistanceFromtargetColors = (colors) => {
     const distances = colors.map((c) =>
-        distance(c, getClosestColor(c, stripeColors))
+        distance(c, getClosestColor(c, targetColors))
     );
     return average(distances);
 };
 
 // convert a linear rgb value to sRGB
-function linearRGB_from_sRGB(v) {
+const linearRGB_from_sRGB = (v) => {
     var fv = v / 255.0;
     if (fv < 0.04045) return fv / 12.92;
     return Math.pow((fv + 0.055) / 1.055, 2.4);
 }
 
-function sRGB_from_linearRGB(v) {
+const sRGB_from_linearRGB = (v) => {
     if (v <= 0) return 0;
     if (v >= 1) return 255;
     if (v < 0.0031308) return 0.5 + v * 12.92 * 255;
     return 0 + 255 * (Math.pow(v, 1.0 / 2.4) * 1.055 - 0.055);
 }
 
-var brettelFunctions = {
+const brettelFunctions = {
     Normal: function (v) {
         return v;
     },
@@ -231,10 +222,11 @@ function monochrome_with_severity(srgb, severity) {
     return [r, g, b];
 }
 
+// Cost function including weights
 const cost = (state) => {
     const energyWeight = 1;
     const rangeWeight = 1;
-    const stripeWeight = 1;
+    const targetWeight = 1;
     const protonopiaWeight = 0.33;
     const deuteranopiaWeight = 0.33;
     const tritanopiaWeight = 0.33;
@@ -244,16 +236,16 @@ const cost = (state) => {
     const deuteranopiaDistances = distances(state, "Deuteranopia");
     const tritanopiaDistances = distances(state, "Tritanopia");
 
-    const energyScore =  100 - average(normalDistances); // higher is better
-    const protanopiaScore = 100 - average(protanopiaDistances); // higher is better
-    const deuteranopiaScore = 100 - average(deuteranopiaDistances); // higher is better
-    const tritanopiaScore = 100 - average(tritanopiaDistances); // higher is better
-    const rangeScore = range(normalDistances); // lower is better
-    const stripeScore = averageDistanceFromStripeColors(state); // lower is better
+    const energyScore =  100 - average(normalDistances); 
+    const protanopiaScore = 100 - average(protanopiaDistances);
+    const deuteranopiaScore = 100 - average(deuteranopiaDistances);
+    const tritanopiaScore = 100 - average(tritanopiaDistances);
+    const rangeScore = range(normalDistances);
+    const targetScore = averageDistanceFromtargetColors(state);
 
     return (
         energyWeight * energyScore +
-        stripeWeight * stripeScore +
+        targetWeight * targetScore +
         rangeWeight * rangeScore +
         protonopiaWeight * protanopiaScore +
         deuteranopiaWeight * deuteranopiaScore +
@@ -261,10 +253,8 @@ const cost = (state) => {
     );
 };
 
-// find n colors that are equidistant from each other
-// using simulated annealing
+// the simulated annealing algorithm
 const optimize = (n = 5) => {
-    // initialize colors
     const colors = [];
     for (let i = 0; i < n; i++) {
         colors.push(randomColor());
@@ -286,26 +276,28 @@ const optimize = (n = 5) => {
             const newColors = colors.map((color) => color);
             // move the current color randomly
             newColors[i] = randomNearbyColor(newColors[i]);
-
+            // choose between the current state and the new state
+            // based on the difference between the two, the temperature
+            // of the algorithm, and some random chance
             const delta = cost(newColors) - cost(colors);
             const probability = Math.exp(-delta / temperature);
             if (Math.random() < probability) {
                 colors[i] = newColors[i];
             }
         }
-        console.log(cost(colors));
+        console.log(`Current cost: ${cost(colors)}`);
 
         // decrease temperature
         temperature *= coolingRate;
     }
 
     console.log(`
-        Start colors: ${startColors.map((color) => color.hex())}
-        Start cost: ${startCost}
-        Final colors: ${colors.map((color) => color.hex())}
-        Final cost: ${cost(colors)}
-        Cost difference: ${cost(colors) - startCost}`);
+Start colors: ${startColors.map((color) => color.hex())}
+Start cost: ${startCost}
+Final colors: ${colors.map((color) => color.hex())}
+Final cost: ${cost(colors)}
+Cost difference: ${cost(colors) - startCost}`);
     return colors;
 };
 
-optimize(5);
+optimize(6);
