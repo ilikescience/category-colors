@@ -227,7 +227,7 @@ const cost = (state) => {
     const energyWeight = 1;
     const rangeWeight = 1;
     const targetWeight = 1;
-    const protonopiaWeight = 0.33;
+    const protanopiaWeight = 0.33;
     const deuteranopiaWeight = 0.33;
     const tritanopiaWeight = 0.33;
 
@@ -247,7 +247,7 @@ const cost = (state) => {
         energyWeight * energyScore +
         targetWeight * targetScore +
         rangeWeight * rangeScore +
-        protonopiaWeight * protanopiaScore +
+        protanopiaWeight * protanopiaScore +
         deuteranopiaWeight * deuteranopiaScore +
         tritanopiaWeight * tritanopiaScore
     );
