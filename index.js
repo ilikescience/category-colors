@@ -73,6 +73,10 @@ const averageDistanceFromtargetColors = (colors) => {
     return average(distances);
 };
 
+// Bretel et al method for simulating color vision deficiency
+// Adapted from https://github.com/MaPePeR/jsColorblindSimulator
+// In turn adapted from libDaltonLens https://daltonlens.org (public domain) 
+
 // convert a linear rgb value to sRGB
 const linearRGB_from_sRGB = (v) => {
     var fv = v / 255.0;
@@ -300,4 +304,4 @@ Cost difference: ${cost(colors) - startCost}`);
     return colors;
 };
 
-optimize(6);
+optimize(8);
