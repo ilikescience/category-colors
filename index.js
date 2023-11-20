@@ -1,12 +1,20 @@
 const chroma = require("chroma-js");
 
 const targetColors = [
-    "#9966FF",
-    "#0055BC",
-    "#00A1C2",
-    "#ED6804",
-    "#B3063D"
+    "#15BE53",
+    "#FF5996",
+    "#FAB001",
 ];
+
+const avoidColors = [
+    "#FF0000"
+]
+
+const providedColors = [
+    "#9966FF",
+]
+
+const backgroundColor = "#ffffff";
 
 // random from array
 const randomFromArray = (array) => {
@@ -65,13 +73,29 @@ const randomNearbyColor = (color) => {
     return color.set(`rgb.${"rgb"[channelToChange]}`, newVal * 255);
 };
 
-// average of distances between array of colors and stripe colors
-const averageDistanceFromtargetColors = (colors) => {
-    const distances = colors.map((c) =>
-        distance(c, getClosestColor(c, targetColors))
+// average of distances between array of colors and given colors
+const averageDistanceFromColors = (testColors, givenColors) => {
+    const distances = testColors.map((c) =>
+        distance(c, getClosestColor(c, givenColors))
     );
     return average(distances);
 };
+
+// maximum distance between array of colors and given colors
+const maxDistanceFromColors = (testColors, givenColors) => {
+    const distances = testColors.map((c) =>
+        distance(c, getClosestColor(c, givenColors))
+    );
+    return Math.max(...distances);
+};
+
+const minDistanceFromColors = (testColors, givenColors) => {
+    const distances = testColors.map((c) =>
+        distance(c, getClosestColor(c, givenColors))
+    );
+    return Math.min(...distances);
+}
+
 
 // Bretel et al method for simulating color vision deficiency
 // Adapted from https://github.com/MaPePeR/jsColorblindSimulator
@@ -231,9 +255,11 @@ const cost = (state) => {
     const energyWeight = 1;
     const rangeWeight = 1;
     const targetWeight = 1;
-    const protanopiaWeight = 0.33;
-    const deuteranopiaWeight = 0.33;
-    const tritanopiaWeight = 0.33;
+    const avoidWeight = .4;
+    const protanopiaWeight = .4;
+    const deuteranopiaWeight = .4;
+    const tritanopiaWeight = .4;
+    const contrastWeight = 1.5;
 
     const normalDistances = distances(state);
     const protanopiaDistances = distances(state, "Protanopia");
@@ -245,7 +271,12 @@ const cost = (state) => {
     const deuteranopiaScore = 100 - average(deuteranopiaDistances);
     const tritanopiaScore = 100 - average(tritanopiaDistances);
     const rangeScore = range(normalDistances);
-    const targetScore = averageDistanceFromtargetColors(state);
+    const targetScore = averageDistanceFromColors(state, targetColors);
+    const avoidScore = 100 - minDistanceFromColors(state, avoidColors);
+
+    const maxPossibleContrast = 21; // Theoretical maximum contrast ratio in WCAG
+    const minContrast = state.reduce((acc, color) => Math.min(chroma.contrast(color, backgroundColor), acc), maxPossibleContrast);
+    const contrastScore = 100 - (minContrast / maxPossibleContrast) * 100;
 
     return (
         energyWeight * energyScore +
@@ -253,14 +284,18 @@ const cost = (state) => {
         rangeWeight * rangeScore +
         protanopiaWeight * protanopiaScore +
         deuteranopiaWeight * deuteranopiaScore +
-        tritanopiaWeight * tritanopiaScore
+        tritanopiaWeight * tritanopiaScore +
+        contrastWeight * contrastScore +
+        avoidWeight * avoidScore
     );
 };
 
 // the simulated annealing algorithm
 const optimize = (n = 5) => {
     const colors = [];
-    for (let i = 0; i < n; i++) {
+    const fixedColors = providedColors.length;
+    providedColors.forEach((color) => colors.push(chroma(color)));
+    for (let i = fixedColors; i < n; i++) {
         colors.push(randomColor());
     }
 
@@ -275,7 +310,7 @@ const optimize = (n = 5) => {
     // iteration loop
     while (temperature > cutoff) {
         // for each color
-        for (let i = 0; i < colors.length; i++) {
+        for (let i = fixedColors; i < colors.length; i++) {
             // copy old colors
             const newColors = colors.map((color) => color);
             // move the current color randomly
@@ -298,10 +333,10 @@ const optimize = (n = 5) => {
     console.log(`
 Start colors: ${startColors.map((color) => color.hex())}
 Start cost: ${startCost}
-Final colors: ${colors.map((color) => color.hex())}
+Final colors: ${colors.reduce((acc, color) => acc + `"${color.hex()}" `, "")}
 Final cost: ${cost(colors)}
 Cost difference: ${cost(colors) - startCost}`);
     return colors;
 };
 
-optimize(8);
+optimize(10);
