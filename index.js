@@ -5,49 +5,49 @@
 //   [] convert anything that uses distances with a CVD parameter to first convert colors, then measure distances.
 //   [x] rewrite random color function to move in a uniform random direction in HSLuv
 
-const ColorJS = require('colorjs.io');
+const ColorJS = require("colorjs.io");
 const Color = ColorJS.default;
 
-const { colorFromHsluv, hsluvFromColor, isOutOfHsluv } = require('./hsluv');
+const { colorFromHsluv, hsluvFromColor, isOutOfHsluv } = require("./hsluv");
 
-const simulateCvd = require('./simulateCvd');
+const simulateCvd = require("./simulateCvd");
 
-const { clamp, gaussianRandom, randomVector } = require('./utils');
+const { clamp, gaussianRandom, randomVector } = require("./utils");
 
-const distanceMethod = '2000';
+const distanceMethod = "2000";
 const jnd = 3;
 
 const targetColors = [
-    '#4269d0',
-    '#efb118',
-    '#ff725c',
-    '#6cc5b0',
-    '#3ca951',
-    '#ff8ab7',
-    '#a463f2',
-    '#97bbf5',
-    '#9c6b4e',
-    '#9498a0',
+    "#4269d0",
+    "#efb118",
+    "#ff725c",
+    "#6cc5b0",
+    "#3ca951",
+    "#ff8ab7",
+    "#a463f2",
+    "#97bbf5",
+    "#9c6b4e",
+    "#9498a0",
 ];
 
-const avoidColors = ['#FF0000', '#000000'];
+const avoidColors = ["#FF0000", "#000000"];
 
 const providedColors = [
-    '#4269d0',
-    '#efb118',
-    '#ff725c',
-    '#6cc5b0',
-    '#3ca951',
-    '#ff8ab7',
-    '#a463f2',
-    '#97bbf5',
-    '#9c6b4e',
-    '#9498a0',
+    "#4269d0",
+    "#efb118",
+    "#ff725c",
+    "#6cc5b0",
+    "#3ca951",
+    "#ff8ab7",
+    "#a463f2",
+    "#97bbf5",
+    "#9c6b4e",
+    "#9498a0",
 ];
 
 const fixedColors = 0;
 
-const backgroundColor = '#ffffff';
+const backgroundColor = "#ffffff";
 
 // random from array
 const randomFromArray = (array) => {
@@ -114,8 +114,8 @@ const randomNearbyColor = (color, delta = jnd * 2, resample = 5) => {
     const candidate = colorFromHsluv(h, s, l);
 
     console.log(
-        `Original: ${color.toString({ format: 'hex' })}`,
-        `Candidate: ${candidate.toString({ format: 'hex' })}`,
+        `Original: ${color.toString({ format: "hex" })}`,
+        `Candidate: ${candidate.toString({ format: "hex" })}`,
         `Distance: ${distance(color, candidate)}`,
         `Samples: ${resample}`
     );
@@ -129,13 +129,13 @@ const randomNearbyColor = (color, delta = jnd * 2, resample = 5) => {
     return candidate;
 };
 
-const convertToCvd = (color, cvdType) => {
+const convertToCvd = (color, cvdType, severity) => {
     const cvdRgb = simulateCvd(
         [color.srgb_linear.r, color.srgb_linear.g, color.srgb_linear.b],
-        cvdType
+        cvdType,
+        severity
     );
-    const convertedColor = new Color('srgb-linear', cvdRgb);
-    return convertedColor.to('srgb');
+    return new Color("srgb-linear", cvdRgb).to("srgb");
 };
 
 // average of distances between array of colors and given colors
@@ -169,25 +169,25 @@ const cost = (state) => {
     const avoidWeight = 0.5;
     const contrastWeight = 0.25;
 
-    const protanopiaWeight = 0.1;
     const protanomalyWeight = 0.1;
 
-    const deuteranopiaWeight = 0.1;
     const deuteranomalyWeight = 0.5;
 
-    const tritanopiaWeight = 0.05;
     const tritanomalyWeight = 0.05;
 
     const normalDistances = distances(state);
 
-    const protanopiaDistances = distances(state, 'Protanopia');
-    const protanomalyDistances = distances(state, 'Protanomaly');
+    const protanomalyDistances = distances(
+        state.map((color) => convertToCvd(color, "Protanomaly", 50))
+    );
 
-    const deuteranopiaDistances = distances(state, 'Deuteranopia');
-    const deuteranomalyDistances = distances(state, 'Deuteranomaly');
+    const deuteranomalyDistances = distances(
+        state.map((color) => convertToCvd(color, "Protanomaly", 50))
+    );
 
-    const tritanopiaDistances = distances(state, 'Tritanopia');
-    const tritanomalyDistances = distances(state, 'Tritanomaly');
+    const tritanomalyDistances = distances(
+        state.map((color) => convertToCvd(color, "Protanomaly", 50))
+    );
 
     const energyScore = 100 - average(normalDistances);
     const rangeScore = range(normalDistances);
@@ -198,19 +198,14 @@ const cost = (state) => {
         ? 100 - minDistanceFromColors(state, avoidColors)
         : 0;
 
-    const protanopiaScore = 100 - average(protanopiaDistances);
     const protanomalyScore = 100 - average(protanomalyDistances);
-
-    const deuteranopiaScore = 100 - average(deuteranopiaDistances);
     const deuteranomalyScore = 100 - average(deuteranomalyDistances);
-
-    const tritanopiaScore = 100 - average(tritanopiaDistances);
-    const triatanomalyScore = 100 - average(tritanomalyDistances);
+    const tritanomalyScore = 100 - average(tritanomalyDistances);
 
     const maxPossibleContrast = 21; // Theoretical maximum contrast ratio in WCAG
     const minContrast = state.reduce(
         (acc, color) =>
-            Math.min(color.contrast(backgroundColor, 'wcag21'), acc),
+            Math.min(color.contrast(backgroundColor, "wcag21"), acc),
         maxPossibleContrast
     );
     const contrastScore = 100 - (minContrast / maxPossibleContrast) * 100;
@@ -220,12 +215,9 @@ const cost = (state) => {
         targetWeight * targetScore +
         rangeWeight * rangeScore +
         avoidWeight * avoidScore +
-        protanopiaWeight * protanopiaScore +
         protanomalyWeight * protanomalyScore +
-        deuteranopiaWeight * deuteranopiaScore +
         deuteranomalyWeight * deuteranomalyScore +
-        tritanopiaWeight * tritanopiaScore +
-        tritanomalyWeight * tritanopiaScore +
+        tritanomalyWeight * tritanomalyScore +
         contrastWeight * contrastScore
     );
 };
@@ -272,15 +264,28 @@ const optimize = (n = 5) => {
     console.log(`
 Start colors: ${startColors.map((color) => color.hex())}
 Start cost: ${startCost}
-Final colors: ${colors.reduce((acc, color) => acc + `"${color.hex()}" `, '')}
+Final colors: ${colors.reduce((acc, color) => acc + `"${color.hex()}" `, "")}
 Final cost: ${cost(colors)}
 Cost difference: ${cost(colors) - startCost}`);
     return colors;
 };
 
-const blue = new Color('blue');
-const green = new Color('green');
-const red = new Color('red');
-const black = new Color('black');
+const blue = new Color("blue");
+const green = new Color("green");
+const red = new Color("red");
+const black = new Color("black");
 
-console.log(convertToCvd(blue, 'protanomaly').toString({ format: 'hex' }));
+const observable10 = [
+    new Color("#4269d0"),
+    new Color("#efb118"),
+    new Color("#ff725c"),
+    new Color("#6cc5b0"),
+    new Color("#3ca951"),
+    new Color("#ff8ab7"),
+    new Color("#a463f2"),
+    new Color("#97bbf5"),
+    new Color("#9c6b4e"),
+    new Color("#9498a0"),
+];
+
+console.log(cost(observable10));
