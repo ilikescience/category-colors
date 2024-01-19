@@ -2,7 +2,7 @@
 // [] rewrite anything that uses ColorJS to use chroma.js
 //   [x] rewrite distances
 //   [x] add cvd conversion function
-//   [] convert anything that uses distances with a CVD parameter to first convert colors, then measure distances.
+//   [x] convert anything that uses distances with a CVD parameter to first convert colors, then measure distances.
 //   [x] rewrite random color function to move in a uniform random direction in HSLuv
 
 const ColorJS = require("colorjs.io");
@@ -112,13 +112,6 @@ const randomNearbyColor = (color, delta = jnd * 2, resample = 5) => {
     }
 
     const candidate = colorFromHsluv(h, s, l);
-
-    console.log(
-        `Original: ${color.toString({ format: "hex" })}`,
-        `Candidate: ${candidate.toString({ format: "hex" })}`,
-        `Distance: ${distance(color, candidate)}`,
-        `Samples: ${resample}`
-    );
 
     // check if the new color is at least 1 jnd away from the original color
     // if not, resample up to n times
@@ -262,9 +255,9 @@ const optimize = (n = 5) => {
     }
 
     console.log(`
-Start colors: ${startColors.map((color) => color.hex())}
+Start colors: ${startColors.map((color) => color.toString({format:"hex"}))}
 Start cost: ${startCost}
-Final colors: ${colors.reduce((acc, color) => acc + `"${color.hex()}" `, "")}
+Final colors: ${colors.reduce((acc, color) => acc + `"${color.toString({format:"hex"})}" `, "")}
 Final cost: ${cost(colors)}
 Cost difference: ${cost(colors) - startCost}`);
     return colors;
@@ -288,4 +281,4 @@ const observable10 = [
     new Color("#9498a0"),
 ];
 
-console.log(cost(observable10));
+optimize(10);
