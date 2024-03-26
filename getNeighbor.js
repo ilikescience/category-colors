@@ -2,24 +2,10 @@
 // [ ] account for temperature when deciding how to mutate the color
 // [ ] finish implementing the neighbor function
 
-const {randomVector} = require('./utils.js');
+const {randomVector, isInRange } = require('./utils.js');
 const { okhsl_to_srgb, srgb_to_okhsl} = require('./okhsl.js');
 const { cost } = require('./cost');
 const Color = require('colorjs.io').default;
-
-const isInRange = (n, ranges) => {
-    // check if ranges is a single array or an array of ranges
-    if (!Array.isArray(ranges[0])) {
-        ranges = [ranges];
-    }
-    const sortedRanges = ranges.map(range => range.sort((a, b) => a - b));
-    for (let i = 0; i < ranges.length; i++) {
-        if (sortedRanges[i][0] <= n && n <= sortedRanges[i][1]) {
-            return true;
-        }
-    }
-    return false;
-}
 
 
 // produces a color a given distance in a random direction away from the given color in okhsl space

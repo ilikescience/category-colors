@@ -29,7 +29,7 @@ const evaluateRange = require('./evaluationFunctions/range/range');
 const evaluateSimilarity = require('./evaluationFunctions/similarity/similarity');
 const { observable10, d3category10 } = require('./palettes');
 
-const { initializeColors } = require('./initializeColors');
+const { initializeColors, randomColorInRange } = require('./initializeColors');
 
 const { getNeighbor, randomlyMutateColor } = require('./getNeighbor');
 
@@ -116,7 +116,8 @@ const state = {
     iterations: 0,
 };
 
-optimize(state, config);
+const randomColor = randomColorInRange([0, 1], [0.5, 1], [0.1, 0.9]);
+console.log(randomColor.toString({ format: 'hex' }));
 
 // sketching out the config object
 // const config = {
