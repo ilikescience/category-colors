@@ -1,21 +1,12 @@
 // Algorithm for simulating a color as it may appear to a person with color deficiency
 // based on Machado et al. (2009) "A Physiologically-based Model for Simulation of Color Vision Deficiency"
 // http://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html
-// todo:
-// [] update to use the implementation from jsColorblindSimulator
 
-// Matrixes taken from
-// https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html
-/*
-Gustavo M. Machado, Manuel M. Oliveira, and Leandro A. F. Fernandes
-"A Physiologically-based Model for Simulation of Color Vision Deficiency".
-IEEE Transactions on Visualization and Computer Graphics. Volume 15 (2009),
-Number 6, November/December 2009. pp. 1291-1298.
-*/
+const Color = require('colorjs.io').default;
 
 var getMachadoMatrix = (function () {
     const machadoMatrixes = {
-        Protanomaly: new Float64Array([
+        protanomaly: new Float64Array([
             1.0, 0.0, -0.0, 0.0, 1.0, 0.0, -0.0, -0.0, 1.0, 0.856167, 0.182038,
             -0.038205, 0.029342, 0.955115, 0.015544, -0.00288, -0.001563,
             1.004443, 0.734766, 0.334872, -0.069637, 0.05184, 0.919198,
@@ -33,7 +24,7 @@ var getMachadoMatrix = (function () {
             0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216,
             -0.003882, -0.048116, 1.051998,
         ]),
-        Deuteranomaly: new Float64Array([
+        deuteranomaly: new Float64Array([
             1.0, 0.0, -0.0, 0.0, 1.0, 0.0, -0.0, -0.0, 1.0, 0.866435, 0.177704,
             -0.044139, 0.049567, 0.939063, 0.01137, -0.003453, 0.007233,
             0.99622, 0.760729, 0.319078, -0.079807, 0.090568, 0.889315,
@@ -51,7 +42,7 @@ var getMachadoMatrix = (function () {
             0.367322, 0.860646, -0.227968, 0.280085, 0.672501, 0.047413,
             -0.01182, 0.04294, 0.968881,
         ]),
-        Tritanomaly: new Float64Array([
+        tritanomaly: new Float64Array([
             1.0, 0.0, -0.0, 0.0, 1.0, 0.0, -0.0, -0.0, 1.0, 0.92667, 0.092514,
             -0.019184, 0.021191, 0.964503, 0.014306, 0.008437, 0.054813,
             0.93675, 0.89572, 0.13333, -0.02905, 0.029997, 0.9454, 0.024603,
@@ -88,17 +79,17 @@ var getMachadoMatrix = (function () {
         if (!(type[0] in machadoMatrixes)) {
             throw "unknown type" + type;
         }
-        if (severity > 100 || severity < 0) {
+        if (severity > 1 || severity < 0) {
             throw "invlid severity";
         }
         const full = machadoMatrixes[type[0]];
         var matrix;
-        if (severity == 100) {
+        if (severity == 1) {
             matrix = getForSeverityStep(full, 10);
         } else {
-            const step = Math.floor(severity / 10);
-            const nextstep = Math.ceil(severity / 10);
-            const weight = (severity - step * 10) / 10;
+            const step = Math.floor(severity * 10);
+            const nextstep = Math.ceil(severity * 10);
+            const weight = severity - (step / 10);
             const weightInv = 1 - weight;
             const prevMatrix = getForSeverityStep(full, step);
             const nextMatrix = getForSeverityStep(full, nextstep);
@@ -127,10 +118,17 @@ var getMachadoMatrix = (function () {
     };
 })();
 
-const simulateCvd = (rgb, cvdType, severity) => {
+const applyCvdToColor = (color, cvdType, severity) => {
+    const linearRgb = [color.srgb_linear.r, color.srgb_linear.g, color.srgb_linear.b];
     const matrix = getMachadoMatrix(cvdType, severity);
-    const result = matrix(rgb).map((v) => Math.max(0, Math.min(1, v))); // clamp to [0, 1]
-    return result;
+    const result = matrix(linearRgb).map((v) => Math.max(0, Math.min(1, v))); // clamp to [0, 1]
+    return new Color('srgb-linear', result).to('srgb');
+}
+
+const simulateCvd = (state, cvdType, severity) => {
+    const { colors } = state;
+    const cvdColors = colors.map((color) => applyCvdToColor(color, cvdType, severity));
+    return { ...state, colors: cvdColors };
 }
 
 module.exports = simulateCvd;

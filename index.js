@@ -1,146 +1,120 @@
 // todo:
-// [] standardize eval functions - make sure each works on state, config
-//   [x] energy
-//   [x] range
-//   [x] saliency
-//   [x] similarity (aka target)
-//   [] avoid
-//   [] contrast
-//   [] jnd
-//   [] cvd
-// [] improve neighbor function
-// [] make configurable with lightness, chroma, and hue ranges
-// [] use colorjsio for hsluv and okhsl
-// [] typescript?
 // [] switch to procedural API for performance
-// [] improve api for simulated annealing
-//   [] fixed colors
-//   [] provided colors
 // [] create benchmarks
+// [] write report function
+// [] make the cli interface better (with stdout?)
 
 const Color = require('colorjs.io').default;
-const { srgb_to_okhsl } = require('./okhsl');
-
-const simulateCvd = require('./simulateCvd');
 
 const evaluateSaliency = require('./evaluationFunctions/saliency/saliency');
 const evaluateEnergy = require('./evaluationFunctions/energy/energy');
 const evaluateRange = require('./evaluationFunctions/range/range');
 const evaluateSimilarity = require('./evaluationFunctions/similarity/similarity');
+const evaluateJnd = require('./evaluationFunctions/jnd/jnd');
 const { observable10, d3category10 } = require('./palettes');
-
-const { initializeColors, randomColorInRange } = require('./initializeColors');
-
-const { getNeighbor, randomlyMutateColor } = require('./getNeighbor');
-
-const { cost } = require('./cost');
-
-const { randomVector, cartesianDistance } = require('./utils');
-
-const convertToCvd = (color, cvdType, severity) => {
-    const cvdRgb = simulateCvd(
-        [color.srgb_linear.r, color.srgb_linear.g, color.srgb_linear.b],
-        cvdType,
-        severity
-    );
-    return new Color('srgb-linear', cvdRgb).to('srgb');
-};
+const { initializeColors } = require('./initializeColors');
+const { getNeighbor } = require('./getNeighbor');
+const { optimizeColorOrder } = require('./optimizeColorOrder');
 
 // the simulated annealing algorithm
-const optimize = (state, config) => {
-    if (state.colors.length < config.colorCount) {
-        // add colors to state if there are not enough
-        colorsToAdd = initializeColors(config.colorCount - state.colors.length);
-        state.colors = state.colors.concat(colorsToAdd);
+const optimize = (initialState, config) => {
+  const state = { ...initializeColors(initialState, config) };
+
+  // iteration loop
+  while (
+    state.temperature > config.cutoff &&
+    state.iterations < config.maxIterations
+  ) {
+    // get a neighbor
+    const candidateState = getNeighbor(state, config);
+    if (
+      Math.random() <
+      Math.exp(-(candidateState.cost - state.cost) / state.temperature)
+    ) {
+      Object.assign(state, candidateState);
+    }
+    if (state.iterations % 100 === 0) {
+      console.log(
+        `Iteration: ${state.iterations}, Cost: ${state.cost.toFixed(
+          2
+        )}, Temperature: ${state.temperature}`
+      );
     }
 
-    state.cost = cost(state, config);
-    config.initialState = { ...state };
+    // decrease temperature
+    state.temperature *= config.coolingRate;
+    state.iterations += 1;
+  }
 
-    // iteration loop
-    while (state.temperature > config.cutoff || state.iterations < config.maxIterations) {
-        // get a neighbor
-        const candidateState = getNeighbor(state, config);
-        // calculate the cost of the candidate
-        const delta = candidateState.cost - state.cost;
-        const probability = Math.exp(-delta / state.temperature);
-        if (Math.random() < probability) {
-            Object.assign(state, candidateState);
-        }
-        // use std out to show progress
-        if (state.iterations % 100 === 0) {
-            console.log(`Iteration: ${state.iterations}, Cost: ${state.cost}`);
-        }
-
-        // decrease temperature
-        state.temperature *= config.coolingRate;
-        state.iterations += 1;
-    }
-
-    console.log(`
-Start colors: ${config.initialState.colors.map((color) => color.toString({ format: 'hex' }))}
+  console.log(`
+Start colors: ${config.initialState.colors.map((color) =>
+    color.toString({ format: 'hex' })
+  )}
 Start cost: ${config.initialState.cost}
-Final colors: ${state.colors.reduce(
-        (acc, color) => acc + `"${color.toString({ format: 'hex' })}" `,
-        ''
-    )}
+Final colors: ${state.colors.map((color) => color.toString({ format: 'hex' }))}
 Final cost: ${state.cost}
 Cost difference: ${state.cost - config.initialState.cost}`);
-    return state.colors;
+  return state;
 };
 
 const config = {
-    intialState: null,
-    colorCount: 8,
-    evalFunctions: [
-        { function: evaluateEnergy, weight: 0.5 },
-        { function: evaluateRange, weight: 0.5 },
-        // { function: evaluateSimilarity, weight: 0.5 },
-    ],
-    fixedColors: 0,
-    similarityTarget: observable10,
-    coolingRate: 0.99,
-    cutoff: 0.0001,
-    maxIterations: 10000,
-    deltaEMethod: '2000',
-    jnd: 5,
-    hueRange: [0, 1],
-    chromaRange: [0.5, 1],
-    luminosityRange: [0.1, 0.9],
+  intialState: null,
+  colorCount: 8,
+  evalFunctions: [
+    { function: evaluateEnergy, weight: 1 },
+    { function: evaluateRange, weight: 1 },
+    { function: evaluateJnd, weight: 1 },
+    {
+      function: evaluateJnd,
+      weight: 1,
+      cvd: { type: 'protanomaly', severity: 0.5 },
+    },
+    {
+      function: evaluateJnd,
+      weight: 1,
+      cvd: { type: 'deuteranomaly', severity: 0.5 },
+    },
+    { function: evaluateSimilarity,
+        weight: 1,
+
+    }
+  ],
+  coolingRate: 0.999,
+  cutoff: 0.0001,
+  maxIterations: 100000,
+  deltaEMethod: '2000',
+  jnd: 25,
+  hueRange: [0, 1],
+  saturationRange: [0.1, 0.7],
+  luminosityRange: [0.6, 1],
+  maxMutationDistance: 0.15, // Max distance in Okhsl space at T=1.0
+  minMutationDistance: 0.005, // Min distance in Okhsl space at T -> 0
+  similarityTarget: [
+    new Color('#DDFFDC'),
+    new Color('#7FEE64'),
+    new Color('#144236'),
+    new Color('#4AD7DD'),
+    new Color('#FFEA71'),
+    new Color('#ED94A7'),
+    new Color('#FFD80A'),
+  ]
 };
 
 const state = {
-    colors: initializeColors(8),
-    cost: Infinity,
-    temperature: 100,
-    iterations: 0,
+  colors: [
+    new Color('#DDFFDC'),
+    new Color('srgb', [0.0275, 0.725, 0.463]),
+    new Color('srgb', [1.0, 0.918, 0.443]),
+    new Color('srgb', [0.29, 0.843, 0.867]),
+    new Color('srgb', [0.953, 0.451, 0.29]),
+    new Color('srgb', [0.737, 0.737, 0.761]),
+  ],
+  temperature: 1,
+  iterations: 0,
+  cost: Infinity,
 };
 
-const randomColor = randomColorInRange([0, 1], [0.5, 1], [0.1, 0.9]);
-console.log(randomColor.toString({ format: 'hex' }));
+state.colors[0].fixedColor = true;
+state.colors[0].fixedOrder = true;
 
-// sketching out the config object
-// const config = {
-//     intialState: state,
-//     colorCount: 10,
-//     evalFunctions: [
-//         {function: evalFunction1, weight: 0.5},
-//         {function: evalFunction2, weight: 0.5},
-//     ],
-//     fixedColors: 0,
-//     similarityTarget: observable10,
-//     coolingRate: 0.99,
-//     cutoff: 0.0001,
-//     maxIterations: 1000,
-//     deltaEMethod: '2000',
-//     jnd: 5,
-//     hueRange: [0, 360],
-//     chromaRange: [0, 1], 
-//     luminosityRange: [0, 1],
-// }
-// mapping out the state object
-// const state = {
-//     colors: [colors],
-//     temperature: 100,
-//     iterations: 0,
-// }
+optimizeColorOrder(optimize(state, config), config);

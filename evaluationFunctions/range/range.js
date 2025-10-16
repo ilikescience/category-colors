@@ -34,7 +34,7 @@ const evaluateRange = (state) => {
         for (let j = i+1; j < state.colors.length; j++) {
             const color = state.colors[i];
             const compareColor = state.colors[j];
-            const thisDistance = color.deltaE(compareColor, '2000');
+            const thisDistance = color.deltaE(compareColor, state.deltaEMethod);
             distances.push(thisDistance);
         }
     }

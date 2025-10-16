@@ -1,3 +1,5 @@
+// todo:
+// [] clip to range function
 // math helper functions
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -73,19 +75,28 @@ const cartesianDistance = (a, b) => {
     );
 };
 
-const isInRange = (n, ranges) => {
-    // check if ranges is a single array or an array of ranges
-    if (!Array.isArray(ranges[0])) {
+const sortRanges = (ranges) => {
+     // check if ranges is a single array or an array of ranges
+     if (!Array.isArray(ranges[0])) {
         ranges = [ranges];
     }
-    const sortedRanges = ranges.map(range => range.sort((a, b) => a - b));
-    for (let i = 0; i < ranges.length; i++) {
+    return ranges.map(range => range.sort((a, b) => a - b));
+};
+
+const isInRange = (n, ranges) => {
+   const sortedRanges = sortRanges(ranges);
+    for (let i = 0; i < sortedRanges.length; i++) {
         if (sortedRanges[i][0] <= n && n <= sortedRanges[i][1]) {
             return true;
         }
     }
     return false;
 }
+
+const clipToRange = (value, min, max) => {
+    return Math.min(Math.max(value, min), max);
+}
+
 
 
 module.exports = {

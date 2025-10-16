@@ -8,16 +8,16 @@ const { srgb_to_okhsl } = require('../../okhsl.js');
 
 const { cylindricalToCartesian, cartesianDistance } = require('../../utils.js');
 
-// this factor adjusts the max chroma when converting to
+// this factor adjusts the max saturation when converting to
 // a bi-conic color space. This makes the resulting shape
 // have a max distance of 1 in each axis.
-const maxChroma = 0.5;
+const maxSaturation = 0.5;
 
 const makeBicone = (hsl) => {
     const [h, s, l] = hsl;
-    let c = l < 0.5 ? s * (l / 0.5) : s * ((1 - l) / 0.5);
-    c *= maxChroma;
-    return [h, c, l];
+    let s_adjusted = l < 0.5 ? s * (l / 0.5) : s * ((1 - l) / 0.5);
+    s_adjusted *= maxSaturation;
+    return [h, s_adjusted, l];
 };
 
 const transformCoordinates = (hcl) => {
