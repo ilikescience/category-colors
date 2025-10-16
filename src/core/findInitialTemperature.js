@@ -10,18 +10,12 @@
 const { getNeighbor } = require('./getNeighbor');
 
 const findInitialTemperature = (initialState, config, numSamples = 100, targetAcceptanceRate = 0.95) => {
-    const positiveDeltas = [];
-    let initialCost;
-
-    // Calculate the initial cost once
-    // This assumes your initialization function returns a state with a cost
-    if (initialState.cost && initialState.cost !== Infinity) {
-        initialCost = initialState.cost;
-    } else {
-        const tempState = { ...initializeColors(initialState, config) };
-        initialCost = tempState.cost;
+    if (!Number.isFinite(initialState.cost)) {
+        throw new Error('Initial state must have a finite cost before determining initial temperature.');
     }
-    
+    const positiveDeltas = [];
+    const initialCost = initialState.cost;
+
     console.log(`Finding initial temperature over ${numSamples} samples...`);
     console.log(`Initial state cost: ${initialCost.toFixed(2)}`);
 

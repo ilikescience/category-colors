@@ -2,12 +2,12 @@
 // colors that are close to each other have high potential energy,
 // colors that are far away have low potential energy.
 
-const { srgb_to_okhsl} = require('../../okhsl.js');
+const { srgb_to_okhsl} = require('../../utils/okhsl.js');
 
 const {
     cylindricalToCartesian,
     cartesianDistance,
-} = require('../../utils.js');
+} = require('../../utils/utils.js');
 
 // this factor adjusts the max saturation when converting to
 // a bi-conic color space. This makes the resulting shape

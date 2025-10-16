@@ -28,13 +28,13 @@ const calculateUniformityMetric = (arr) => {
 // evaluates how similar the distances between the colors are
 // should return 0 if all distances are the same, and 1 if all distances are maximally different
 
-const evaluateRange = (state) => {
+const evaluateRange = (state, config) => {
     const distances = [];
     for (let i = 0; i < state.colors.length; i++) {
         for (let j = i+1; j < state.colors.length; j++) {
             const color = state.colors[i];
             const compareColor = state.colors[j];
-            const thisDistance = color.deltaE(compareColor, state.deltaEMethod);
+            const thisDistance = color.deltaE(compareColor, config.deltaEMethod);
             distances.push(thisDistance);
         }
     }

@@ -1,8 +1,8 @@
 // todo:
 // [ ] account for temperature when deciding how to mutate the color
 
-const { randomVector, isInRange } = require('./utils.js');
-const { okhsl_to_srgb, srgb_to_okhsl } = require('./okhsl.js');
+const { randomVector, isInRange } = require('../utils/utils.js');
+const { okhsl_to_srgb, srgb_to_okhsl } = require('../utils/okhsl.js');
 const { cost } = require('./cost');
 const Color = require('colorjs.io').default;
 
