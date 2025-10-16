@@ -14,7 +14,7 @@ To generate colors, run `node index.js`.
 
 There are a number of variables you can tweak to adjust the results:
 
-`targetColors` is an array of colors which can be any format readable by [chroma.js](https://gka.github.io/chroma.js/) - the algorithm will attempt to find colors that are similar to these.
+`targetColors` is an array of colors which can be any format readable by [colorjs.io](https://colorjs.io/) - the algorithm will attempt to find colors that are similar to these.
 
 `energyWeight,` `rangeWeight`, `targetWeight`, `protanopiaWeight`, `deuteranopiaWeight`, and `tritanopiaWeight` can be any floating point number. They adjust the relative impact of each factor in the algorithm's decisionmaking:
 - A higher energy weight will result in colors that are more differentiable from each other

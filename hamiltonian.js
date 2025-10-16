@@ -1,6 +1,10 @@
-const chroma = require("chroma-js");
+const Color = require("colorjs.io").default;
 
 const colors = process.argv.slice(2);
+const colorObjects = colors.reduce((acc, color) => {
+    acc[color] = new Color(color);
+    return acc;
+}, {});
 
 // build a graph of colors
 const graph = {};
@@ -10,7 +14,7 @@ colors.forEach((color) => {
         if (color !== otherColor) {
             graph[color].push({
                 color: otherColor,
-                distance: chroma.deltaE(color, otherColor),
+                distance: colorObjects[color].deltaE(colorObjects[otherColor], "2000"),
             });
         }
     });

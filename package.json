@@ -8,7 +8,9 @@
   },
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "chroma-js": "^2.4.2"
+  "dependencies": {
+    "colorjs.io": "^0.5.0",
+    "hsluv": "^1.0.1",
+    "munkres-algorithm": "^1.0.2"
   }
 }
