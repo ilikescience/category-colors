@@ -4,9 +4,8 @@
 // uses the Munkres algorithm to find the minimum weight assignment of the distance matrix
 
 const { minWeightAssign } = require('munkres-algorithm');
-const { srgb_to_okhsl } = require('../../okhsl.js');
-
-const { cylindricalToCartesian, cartesianDistance } = require('../../utils.js');
+const { srgb_to_okhsl } = require('../../utils/okhsl.js');
+const { cylindricalToCartesian, cartesianDistance } = require('../../utils/utils.js');
 
 // this factor adjusts the max saturation when converting to
 // a bi-conic color space. This makes the resulting shape

@@ -1,8 +1,6 @@
 const Color = require('colorjs.io').default;
-const { okhsl_to_srgb, srgb_to_okhsl } = require('./okhsl');
-const { isInRange } = require('./utils');
-const { cost } = require('./cost');
-const { findInitialTemperature } = require('./findInitialTemperature');
+const { okhsl_to_srgb, srgb_to_okhsl } = require('../utils/okhsl');
+const { isInRange } = require('../utils/utils');
 
 const closestInArray = (n, array) => {
     return array.reduce((prev, curr) => (Math.abs(curr - n) < Math.abs(prev - n) ? curr : prev));
@@ -55,7 +53,10 @@ const randomColorInOkhslRange = (hueRange, saturationRange, luminosityRange) => 
 };
 
 const initializeColors = (state, config) => {
-    const initializedState = { ...state };
+    const initializedState = {
+        ...state,
+        colors: Array.from({ length: config.colorCount }, (_, i) => state.colors?.[i]),
+    };
     for (let i = 0; i < config.colorCount; i++) {
         if (state.colors[i]?.fixedColor) {
             initializedState.colors[i] = state.colors[i];
@@ -74,9 +75,6 @@ const initializeColors = (state, config) => {
                   config.luminosityRange
               );
     }
-    initializedState.cost = cost(initializedState, config);
-    initializedState.temperature = findInitialTemperature(initializedState, config, 100, 0.95);
-    config.initialState = initializedState;
     return initializedState;
 };
 

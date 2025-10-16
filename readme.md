@@ -12,17 +12,30 @@ To generate colors, run `node index.js`.
 
 ### Modifying
 
-There are a number of variables you can tweak to adjust the results:
+The code is organized to separate algorithm building blocks from evaluation logic:
+- `src/core/` contains the simulated annealing workflow (state preparation, neighbor generation, temperature finding, order optimization).
+- `src/evaluators/` houses individual evaluation functions that can be mixed and matched in the configuration.
+- `src/config/` provides the default config (`defaultConfig.js`) and starting palette (`defaultState.js`).
+- `src/utils/` contains shared math and color helpers.
+- `src/data/` includes bundled palettes you can swap in for experiments.
+- `scripts/hamiltonian.js` is a standalone script built around the same utilities for graph experiments.
+
+To tweak the algorithm, start by copying and editing the factories in `src/config/`:
+
+```js
+const { createDefaultConfig } = require('./src/config/defaultConfig');
+const { createDefaultState } = require('./src/config/defaultState');
+```
+
+There are a number of variables you can modify inside the config factory to adjust the results:
 
 `targetColors` is an array of colors which can be any format readable by [colorjs.io](https://colorjs.io/) - the algorithm will attempt to find colors that are similar to these.
 
-`energyWeight,` `rangeWeight`, `targetWeight`, `protanopiaWeight`, `deuteranopiaWeight`, and `tritanopiaWeight` can be any floating point number. They adjust the relative impact of each factor in the algorithm's decisionmaking:
-- A higher energy weight will result in colors that are more differentiable from each other
-- A higher range weight will result in colors that are more uniformly spread through color space
-- A higher target weight will result in colors that are closer to the target colors specified with `targetColors`
-- A higher protanopia weight will result in colors that are more differentiable to people with protanopia
-- A higher deuteranopia weight will result in colors that are more differentiable to people with deuteranopia
-- A higher tritanopia weight will result in colors that are more differentiable to people with tritanopia
+`config.evalFunctions` is an array of `{ function, weight, cvd? }` descriptors. Add, remove, or reorder entries to emphasise different evaluation criteria:
+- Increase the weight on `evaluators.energy` to push colors further apart.
+- Increase the weight on `evaluators.range` to keep distances between colors more uniform.
+- Add additional `evaluators.jnd` entries with different `cvd` settings to cover more simulated deficiencies.
+- Swap `evaluators.similarity` or change `config.similarityTarget` to chase a different reference palette.
 
 `temperature` can be any floating point number. It is the starting point temperature of the algorithm - a higher temperature means that early iterations are more likely to be randomly-chosen than optimized.
 
