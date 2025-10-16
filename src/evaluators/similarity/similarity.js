@@ -4,8 +4,8 @@
 // uses the Munkres algorithm to find the minimum weight assignment of the distance matrix
 
 const { minWeightAssign } = require('munkres-algorithm');
-const { srgb_to_okhsl } = require('../../utils/okhsl.js');
 const { cylindricalToCartesian, cartesianDistance } = require('../../utils/utils.js');
+const { toOkhsl01 } = require('../../utils/colorSpace.js');
 
 // this factor adjusts the max saturation when converting to
 // a bi-conic color space. This makes the resulting shape
@@ -52,14 +52,10 @@ const evaluateSimilarity = (state, config) => {
             const color = state.colors[i];
             // use biconic okhsl space to calculate distance
             // this guarantees that the distance is in [0, 1]
-            const okhsl = srgb_to_okhsl(color.srgb.r, color.srgb.g, color.srgb.b);
+            const okhsl = toOkhsl01(color);
             const hcl = makeBicone(okhsl);
             const compareColor = config.similarityTarget[assignments[i]];
-            const compareOkhsl = srgb_to_okhsl(
-                compareColor.srgb.r,
-                compareColor.srgb.g,
-                compareColor.srgb.b
-            );
+            const compareOkhsl = toOkhsl01(compareColor);
             const compareHcl = makeBicone(compareOkhsl);
             distance += cartesianDistance(
                 transformCoordinates(hcl),

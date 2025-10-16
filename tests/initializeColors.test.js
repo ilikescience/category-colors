@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const Color = require('colorjs.io').default;
 
 const { initializeColors } = require('../src/core/initializeColors');
-const { srgb_to_okhsl } = require('../src/utils/okhsl');
+const { toOkhsl01 } = require('../src/utils/colorSpace');
 const { withMockedRandom } = require('./testUtils');
 
 // These tests focus on the deterministic parts of initializeColors by
@@ -30,11 +30,7 @@ test('initializeColors preserves fixed colors and fills remaining slots within t
     assert.strictEqual(result.colors[0], fixedColor, 'fixed colors should remain untouched');
 
     const generatedColor = result.colors[1];
-    const [h, s, l] = srgb_to_okhsl(
-        generatedColor.srgb.r,
-        generatedColor.srgb.g,
-        generatedColor.srgb.b
-    );
+    const [h, s, l] = toOkhsl01(generatedColor);
 
     assert.ok(h >= config.hueRange[0] && h <= config.hueRange[1], 'hue should be within range');
     assert.ok(s >= config.saturationRange[0] && s <= config.saturationRange[1], 'saturation should be within range');
@@ -52,11 +48,7 @@ test('initializeColors clips existing colors that fall outside the allowed range
     };
 
     const result = initializeColors(state, config);
-    const [h, s, l] = srgb_to_okhsl(
-        result.colors[0].srgb.r,
-        result.colors[0].srgb.g,
-        result.colors[0].srgb.b
-    );
+    const [h, s, l] = toOkhsl01(result.colors[0]);
 
     const epsilon = 1e-6;
     assert.ok(

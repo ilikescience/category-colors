@@ -2,12 +2,11 @@
 // colors that are close to each other have high potential energy,
 // colors that are far away have low potential energy.
 
-const { srgb_to_okhsl} = require('../../utils/okhsl.js');
-
 const {
     cylindricalToCartesian,
     cartesianDistance,
 } = require('../../utils/utils.js');
+const { toOkhsl01 } = require('../../utils/colorSpace.js');
 
 // this factor adjusts the max saturation when converting to
 // a bi-conic color space. This makes the resulting shape
@@ -31,17 +30,13 @@ const evaluateEnergy = (state) => {
     let totalEnergy = 0;
     for (let i = 0; i < state.colors.length; i++) {
         const color = state.colors[i];
-        const okhsl = srgb_to_okhsl(color.srgb.r, color.srgb.g, color.srgb.b);
+        const okhsl = toOkhsl01(color);
         const hcl = makeBicone(okhsl);
         const transformedHcl = transformCoordinates(hcl);
         for (let j = 0; j < state.colors.length; j++) {
             if (i === j) continue;           
             const compareColor = state.colors[j];
-            const compareOkhsl = srgb_to_okhsl(
-                compareColor.srgb.r,
-                compareColor.srgb.g,
-                compareColor.srgb.b
-            );
+            const compareOkhsl = toOkhsl01(compareColor);
             const compareHcl = makeBicone(compareOkhsl);
             // the max distance possible from an hcl color:
             // if c is greater than 0.5, the max distance is from the hue opposite the color with s = 1 and l = 0.5

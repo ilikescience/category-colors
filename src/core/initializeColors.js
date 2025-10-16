@@ -1,6 +1,5 @@
-const Color = require('colorjs.io').default;
-const { okhsl_to_srgb, srgb_to_okhsl } = require('../utils/okhsl');
 const { isInRange } = require('../utils/utils');
+const { toOkhsl01, fromOkhsl01 } = require('../utils/colorSpace');
 
 const closestInArray = (n, array) => {
     return array.reduce((prev, curr) => (Math.abs(curr - n) < Math.abs(prev - n) ? curr : prev));
@@ -28,11 +27,11 @@ const clipChannelToRange = (channel, range, wrap = false) => {
 };
 
 const clipColorToOkhslRange = (color, hueRange, saturationRange, luminosityRange) => {
-    const okhsl = srgb_to_okhsl(color.srgb.r, color.srgb.g, color.srgb.b);
+    const okhsl = toOkhsl01(color);
     const h = clipChannelToRange(okhsl[0], hueRange, 1);
     const s = clipChannelToRange(okhsl[1], saturationRange);
     const l = clipChannelToRange(okhsl[2], luminosityRange);
-    const newColor =  new Color('srgb', okhsl_to_srgb(h, s, l));
+    const newColor = fromOkhsl01([h, s, l]);
     newColor.fixedColor = color.fixedColor;
     newColor.fixedOrder = color.fixedOrder;
     return newColor;
@@ -49,7 +48,7 @@ const randomColorInOkhslRange = (hueRange, saturationRange, luminosityRange) => 
     do {
         l = Math.random();
     } while (!isInRange(l, luminosityRange));
-    return new Color('srgb', okhsl_to_srgb(h, s, l));
+    return fromOkhsl01([h, s, l]);
 };
 
 const initializeColors = (state, config) => {
