@@ -10,6 +10,10 @@ It comes with an MIT License - please use it carefully and respectfully.
 
 To generate colors, run `node index.js`.
 
+### Testing
+
+Run `npm test` to execute the lightweight sanity checks that guard the core modules. The tests rely solely on the Node.js built-in test runner, so no extra dependencies are required.
+
 ### Modifying
 
 The code is organized to separate algorithm building blocks from evaluation logic:
