@@ -23,6 +23,7 @@ The code is organized to separate algorithm building blocks from evaluation logi
 - `src/utils/` contains shared math and color helpers.
 - `src/data/` includes bundled palettes you can swap in for experiments.
 - `scripts/hamiltonian.js` is a standalone script built around the same utilities for graph experiments.
+- `src/report/jnd.js` exposes a helper for generating just-noticeable-difference reports (see below).
 
 To tweak the algorithm, start by copying and editing the factories in `src/config/`:
 
@@ -40,6 +41,28 @@ There are a number of variables you can modify inside the config factory to adju
 - Increase the weight on `evaluators.range` to keep distances between colors more uniform.
 - Add additional `evaluators.jnd` entries with different `cvd` settings to cover more simulated deficiencies.
 - Swap `evaluators.similarity` or change `config.similarityTarget` to chase a different reference palette.
+
+### JND Reporting
+
+You can audit an existing palette with the built-in report helper:
+
+```js
+const { reports } = require('./src');
+
+const palette = ['#ff0000', '#f20000', '#00ff00', '#0000ff'];
+const result = reports.reportJndIssues(palette, {
+  deltaEMethod: '2000',
+  jndThreshold: 25,
+  cvdSimulations: [
+    { type: 'protanomaly', severity: 1 },
+    { type: 'deuteranomaly', severity: 0.5 },
+  ],
+});
+
+console.log(JSON.stringify(result, null, 2));
+```
+
+The report lists all pairs that fall below the JND threshold in the base palette and in any simulated color-vision deficiency modes you request.
 
 `temperature` can be any floating point number. It is the starting point temperature of the algorithm - a higher temperature means that early iterations are more likely to be randomly-chosen than optimized.
 

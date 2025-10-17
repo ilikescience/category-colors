@@ -4,6 +4,7 @@ const evaluators = require('./evaluators');
 const { createDefaultConfig } = require('./config/defaultConfig');
 const { createDefaultState } = require('./config/defaultState');
 const data = require('./data');
+const reports = require('./report/jnd');
 
 module.exports = {
     core: {
@@ -17,4 +18,5 @@ module.exports = {
         createDefaultState,
     },
     data,
+    reports,
 };
