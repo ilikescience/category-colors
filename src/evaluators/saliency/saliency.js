@@ -1,4 +1,8 @@
 const saliencies = require('./saliencies.json');
+const { converter, getMode } = require('culori');
+
+const toLab = converter('lab65');
+const labChannels = getMode('lab65').channels.filter(ch => ch !== 'alpha');
 
 Array.prototype.isEqualToArray = function (array) {
     if (!array) return false;
@@ -15,7 +19,9 @@ Array.prototype.isEqualToArray = function (array) {
 
 const saliency = (color) => {
     // saliency data is in lab-d65, rounded to the nearest 5
-    const lab = color.to('lab-d65').coords.map((x) => Math.round(x / 5) * 5);
+    const converted = toLab(color);
+    // Extract coordinates directly from Culori color object
+    const lab = labChannels.map(ch => Math.round((converted[ch] ?? 0) / 5) * 5);
     const datum = saliencies.find((item) => {
         return item.colorValue.isEqualToArray(lab);
     });

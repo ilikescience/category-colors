@@ -1,6 +1,7 @@
 const simulateCvd = require('../core/simulateCvd');
 const { deltaE } = require('../utils/deltaE');
 const { createColor } = require('../utils/paletteColor');
+const { converter, getMode } = require('culori');
 
 const defaultOptions = {
     distanceMethod: 'ciede2000',
@@ -31,7 +32,10 @@ const formatColor = (color, paletteSpace) => {
     if (!paletteSpace) {
         return color.toString({ format: 'hex' });
     }
-    const coords = color.to(paletteSpace).coords;
+    const converted = converter(paletteSpace)(color);
+    // Extract coordinates directly from Culori color object
+    const channels = getMode(paletteSpace).channels.filter(ch => ch !== 'alpha');
+    const coords = channels.map(ch => converted[ch] ?? 0);
     return `${paletteSpace}(${coords.map((value) => Number(value.toFixed(4))).join(', ')})`;
 };
 

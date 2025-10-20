@@ -7,10 +7,7 @@ const {
     filterDeficiencyProt,
     filterDeficiencyDeuter,
     filterDeficiencyTrit,
-    converter
 } = require('culori');
-
-const toRgb = converter('rgb');
 
 const getCvdFilter = (cvdType, severity) => {
     if (cvdType === "Normal") {
@@ -37,8 +34,7 @@ const getCvdFilter = (cvdType, severity) => {
 
 const applyCvdToColor = (color, cvdType, severity) => {
     const filter = getCvdFilter(cvdType, severity);
-    const rgbColor = toRgb(color);
-    const simulated = filter(rgbColor);
+    const simulated = filter(color);
     const newColor = createColor(simulated);
     newColor.fixedColor = color.fixedColor;
     newColor.fixedOrder = color.fixedOrder;

@@ -27,6 +27,11 @@ const createDefaultConfig = () => ({
     },
     colorSpace: {
         mode: 'okhsl',
+        ranges: [
+            [0, 360], // hue
+            [0.2, 1],   // saturation
+            [0.2, 0.9],   // lightness
+        ],
     },
     jnd: 25,
     maxMutationDistance: 0.15,

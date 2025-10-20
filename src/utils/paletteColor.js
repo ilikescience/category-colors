@@ -43,15 +43,7 @@ const getChannelWrap = (mode, channelIndex, configRange) => {
     return null;
 };
 
-const extractCoords = (color) => {
-    const mode = color.mode || 'rgb';
-    const channels = getChannels(mode);
-    if (channels) {
-        return channels.map((channel) => color[channel] ?? 0);
-    }
-    return [];
-};
-
+// Helper to convert coords array to color object
 const toModeObject = (mode, coords) => {
     const channels = getChannels(mode);
     if (channels) {
@@ -97,14 +89,16 @@ const createColor = (input, coords) => {
     colorObj.fixedOrder = false;
 
     // Add utility methods
-    colorObj.to = function(space) {
-        const convert = converter(space);
-        const converted = convert(this);
-        return { space, coords: extractCoords(converted) };
-    };
-
     colorObj.toString = function() {
         return formatHex(this);
+    };
+
+    // Add .to() method that returns { space, coords } for backward compatibility
+    colorObj.to = function(targetMode) {
+        const converted = converter(targetMode)(this);
+        const channels = getChannels(targetMode);
+        const coords = channels ? channels.map(ch => converted[ch] ?? 0) : [];
+        return { space: targetMode, coords };
     };
 
     return colorObj;
@@ -112,8 +106,6 @@ const createColor = (input, coords) => {
 
 module.exports = {
     createColor,
-    extractCoords,
-    toModeObject,
     getChannels,
     getChannelWrap,
 };

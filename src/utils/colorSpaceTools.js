@@ -2,7 +2,17 @@ const culori = require('culori');
 const { randomVector } = require('./utils');
 const { createColor, getChannelWrap } = require('./paletteColor');
 
-const { random, clampGamut, inGamut } = culori;
+const { random, clampGamut, inGamut, converter, getMode } = culori;
+
+// Helper to create a color object from mode and coords array
+const colorFromCoords = (mode, coords) => {
+    const channels = culori.getMode(mode)?.channels?.filter(ch => ch !== 'alpha') || [];
+    const colorObj = { mode };
+    channels.forEach((ch, i) => {
+        colorObj[ch] = coords[i] ?? 0;
+    });
+    return colorObj;
+};
 
 const clampChannelToRange = (value, range, wrap) => {
     if (!range) {
@@ -76,8 +86,9 @@ const resolveRanges = (mode, configRanges) => {
     });
 };
 
-const normalizeCoords = (coords, ranges) =>
-    coords.map((value, index) => {
+const normalizeCoords = (color, channels, ranges) =>
+    channels.map((channel, index) => {
+        const value = color[channel];
         if (Number.isFinite(value)) {
             return value;
         }
@@ -122,8 +133,9 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
         }
     }
 
-    const conversion = workingColor.to(mode);
-    let coords = normalizeCoords(conversion.coords.slice(), ranges);
+    const converted = converter(mode)(workingColor);
+    const channels = culori.getMode(mode)?.channels?.filter(ch => ch !== 'alpha') || [];
+    let coords = normalizeCoords(converted, channels, ranges);
 
     let rangeAdjusted = false;
     coords = coords.map((value, index) => {
@@ -141,7 +153,7 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
         );
     }
 
-    const adjusted = createColor(mode, coords);
+    const adjusted = createColor(colorFromCoords(mode, coords));
     adjusted.fixedColor = fixedColor;
     adjusted.fixedOrder = fixedOrder;
     return adjusted;
@@ -178,7 +190,9 @@ const mutateColorInSpace = (color, distance, config, distanceOptions) => {
     // Auto-detect wrap from culori's mode definition if not explicitly provided
     const wrap = colorSpace.wrap || ranges.map((range, index) => getChannelWrap(mode, index, range));
 
-    const coords = normalizeCoords(color.to(mode).coords.slice(), ranges);
+    const converted = converter(mode)(color);
+    const channels = culori.getMode(mode)?.channels?.filter(ch => ch !== 'alpha') || [];
+    const coords = normalizeCoords(converted, channels, ranges);
     const dimensions = coords.length;
     const mutation = randomVector(dimensions, distance);
     const mutated = coords.map((value, index) => {
@@ -187,7 +201,7 @@ const mutateColorInSpace = (color, distance, config, distanceOptions) => {
         const delta = mutation[index] * span;
         return clampChannelToRange(value + delta, range, wrap[index]);
     });
-    const mutatedColor = createColor(mode, mutated);
+    const mutatedColor = createColor(colorFromCoords(mode, mutated));
     mutatedColor.fixedColor = color.fixedColor;
     mutatedColor.fixedOrder = color.fixedOrder;
     return ensureColorInSpace(mutatedColor, config, distanceOptions, { context: 'mutation', silent: true });
