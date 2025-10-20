@@ -1,9 +1,27 @@
 const { initializeColors } = require('./initializeColors');
 const { cost } = require('./cost');
 const { findInitialTemperature } = require('./findInitialTemperature');
+const { sanitizePalette } = require('../utils/colorSpaceTools');
+const { resolveDistanceOptions } = require('../utils/distanceOptions');
 
 const prepareInitialState = (state, config) => {
-    const initializedState = initializeColors(state, config);
+    const distanceOptions = resolveDistanceOptions(config);
+
+    if (Array.isArray(config.similarityTarget)) {
+        config.similarityTarget = sanitizePalette(
+            config.similarityTarget,
+            config,
+            distanceOptions,
+            'similarityTarget'
+        );
+    }
+
+    const sanitizedState = {
+        ...state,
+        colors: sanitizePalette(state.colors || [], config, distanceOptions, 'initial'),
+    };
+
+    const initializedState = initializeColors(sanitizedState, config);
     const workingState = {
         ...initializedState,
         iterations: state.iterations ?? 0,

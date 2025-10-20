@@ -1,5 +1,3 @@
-// todo:
-// [] clip to range function
 // math helper functions
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -92,12 +90,6 @@ const isInRange = (n, ranges) => {
     }
     return false;
 }
-
-const clipToRange = (value, min, max) => {
-    return Math.min(Math.max(value, min), max);
-}
-
-
 
 module.exports = {
     clamp,

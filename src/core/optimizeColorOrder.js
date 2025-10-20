@@ -1,80 +1,109 @@
-// return a set of arrays indicating the permutations of the order of the colors in state
-// reject permutations that violate the fixedOrder property
-const permutations = (state) => {
-    let result = [];
+const { deltaE } = require('../utils/deltaE');
+const { resolveDistanceOptions } = require('../utils/distanceOptions');
 
-    const permute = (arr, m = []) => {
-        if (arr.length === 0) {
-            // for every index, if that color in the state is fixed,
-            // it must be in the same position in the permutation
-            if (
-                m.every((colorIndex, i) => {
-                    return state.colors[i].fixedOrder ? m[i] === i : true;
-                })
-            ) {
-                result.push(m);
-            } else {
-                return;
+const buildDistanceMatrix = (state, config) => {
+    if (state.metrics && state.metrics.deltaEMatrix) {
+        return state.metrics.deltaEMatrix;
+    }
+    const length = state.colors.length;
+    const matrix = Array.from({ length }, () => new Float64Array(length));
+    const distanceOptions = resolveDistanceOptions(config);
+    for (let i = 0; i < length; i++) {
+        matrix[i][i] = 0;
+        for (let j = i + 1; j < length; j++) {
+            const distance = deltaE(state.colors[i], state.colors[j], distanceOptions);
+            matrix[i][j] = distance;
+            matrix[j][i] = distance;
+        }
+    }
+    return matrix;
+};
+
+const evaluatePathCost = (path, matrix) => {
+    let sum = 0;
+    let sumSquares = 0;
+    for (let i = 0; i < path.length - 1; i++) {
+        const distance = matrix[path[i]][path[i + 1]];
+        sum += distance;
+        sumSquares += distance * distance;
+    }
+    const edgeCount = path.length - 1;
+    const mean = sum / edgeCount;
+    const variance = Math.max(sumSquares / edgeCount - mean * mean, 0);
+    const stdDev = Math.sqrt(variance);
+    return stdDev / mean;
+};
+
+const optimizeColorOrder = (state, config) => {
+    const count = state.colors.length;
+    if (count <= 2) {
+        return state.colors.slice();
+    }
+
+    const matrix = buildDistanceMatrix(state, config);
+    const requiredPositions = state.colors.map((color, index) =>
+        color.fixedOrder ? index : null
+    );
+
+    const used = new Array(count).fill(false);
+    let bestPath = null;
+    let bestCost = Infinity;
+
+    const dfs = (path, sum, sumSquares) => {
+        const position = path.length;
+        if (position === count) {
+            const edgeCount = count - 1;
+            const mean = sum / edgeCount;
+            const variance = Math.max(sumSquares / edgeCount - mean * mean, 0);
+            const stdDev = Math.sqrt(variance);
+            const cost = stdDev / mean;
+            if (cost < bestCost) {
+                bestCost = cost;
+                bestPath = path.slice();
             }
-        } else {
-            for (let i = 0; i < arr.length; i++) {
-                let curr = arr.slice();
-                let next = curr.splice(i, 1);
-                permute(curr.slice(), m.concat(next));
-            }
+            return;
+        }
+
+        const requiredIndex = requiredPositions[position];
+        const candidates =
+            requiredIndex != null ? [requiredIndex] : Array.from({ length: count }, (_, i) => i);
+
+        for (const candidate of candidates) {
+            if (used[candidate]) continue;
+            if (state.colors[candidate].fixedOrder && candidate !== position) continue;
+
+            const previous = path[path.length - 1];
+            const distance = path.length === 0 ? 0 : matrix[previous][candidate];
+            used[candidate] = true;
+            path.push(candidate);
+            dfs(
+                path,
+                path.length === 1 ? 0 : sum + distance,
+                path.length === 1 ? 0 : sumSquares + distance * distance
+            );
+            path.pop();
+            used[candidate] = false;
         }
     };
 
-    permute(state.colors.map((color, i) => i));
-
-    return result;
-};
-
-const buildColorGraph = (state, config) => {
-    const graph = [];
-    state.colors.forEach((color, i) => {
-        graph[i] = [];
-        state.colors.forEach((otherColor, j) => {
-            if (i !== j) {
-                graph[i][j] = color.deltaE(otherColor, config.deltaEMethod);
-            } else {
-                graph[i][j] = 0;
-            }
-        });
-    });
-    return graph;
-};
-
-// Calculate the cost of a path. The cost should be low if the path is "good" and high if the path is "bad".
-// "good" means that the path has a low standard deviation of edge weights, and a high mean of edge weights.
-// "bad" means that the path has a high standard deviation of edge weights, and a low mean of edge weights.
-const pathCost = (path, graph) => {
-    let pathMean = 0;
-    let pathStandardDeviation = 0;
-    for (let i = 0; i < path.length - 1; i++) {
-        const distance = graph[path[i]][path[i + 1]];
-        pathMean += distance;
-        pathStandardDeviation += distance * distance;
+    const startRequired = requiredPositions[0];
+    if (startRequired != null) {
+        used[startRequired] = true;
+        dfs([startRequired], 0, 0);
+        used[startRequired] = false;
+    } else {
+        for (let i = 0; i < count; i++) {
+            used[i] = true;
+            dfs([i], 0, 0);
+            used[i] = false;
+        }
     }
-    pathMean /= path.length - 1;
-    pathStandardDeviation = Math.sqrt(
-        pathStandardDeviation / (path.length - 1) - pathMean * pathMean
-    );
-    return pathStandardDeviation / pathMean;
-};
 
-// optimize the color order of the state
-// should preserve the order of any colors that have the fixedOrder property set to true
-const optimizeColorOrder = (state, config) => {
-    const graph = buildColorGraph(state, config);
-    const bestPath = permutations(state).reduce(
-        (bestPath, path) => (pathCost(path, graph) < pathCost(bestPath, graph) ? path : bestPath),
-        // initialize the best path to be the identity permutation, ie [0, 1, 2, ...]
-        Array(state.colors.length)
-            .fill()
-            .map((x, i) => i)
-    );
-    return bestPath.map((i) => state.colors[i]);
+    if (!bestPath) {
+        bestPath = Array.from({ length: count }, (_, i) => i);
+    }
+
+    return bestPath.map((index) => state.colors[index]);
 };
 
 module.exports = {

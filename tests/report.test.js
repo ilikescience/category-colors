@@ -1,14 +1,14 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const Color = require('colorjs.io').default;
-
 const { reportJndIssues } = require('../src/report/jnd');
+const { createColor } = require('../src/utils/paletteColor');
 
 test('reportJndIssues flags pairs below the JND threshold', () => {
     const palette = ['#ff0000', '#f10000', '#00ff00'];
     const report = reportJndIssues(palette, {
         jndThreshold: 10,
-        deltaEMethod: '2000',
+        distanceMethod: 'ciede2000',
+        distanceSpace: 'lab65',
     });
 
     assert.equal(report.totalIssues, 1);
@@ -23,13 +23,15 @@ test('reportJndIssues flags pairs below the JND threshold', () => {
 
 test('reportJndIssues includes CVD simulations when provided', () => {
     const palette = [
-        new Color('#ff0000'),
-        new Color('#f10000'),
-        new Color('#00ff00'),
+        createColor('#ff0000'),
+        createColor('#f10000'),
+        createColor('#00ff00'),
     ];
 
     const report = reportJndIssues(palette, {
         jndThreshold: 15,
+        distanceMethod: 'cie76',
+        distanceSpace: 'lab65',
         cvdSimulations: [
             { type: 'protanomaly', severity: 1 },
             { type: 'deuteranomaly', severity: 0.5 },

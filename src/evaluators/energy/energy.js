@@ -2,67 +2,38 @@
 // colors that are close to each other have high potential energy,
 // colors that are far away have low potential energy.
 
-const {
-    cylindricalToCartesian,
-    cartesianDistance,
-} = require('../../utils/utils.js');
-const { toOkhsl01 } = require('../../utils/colorSpace.js');
+const { deltaE } = require('../../utils/deltaE');
+const { resolveDistanceOptions, getMaxDistance } = require('../../utils/distanceOptions');
 
-// this factor adjusts the max saturation when converting to
-// a bi-conic color space. This makes the resulting shape
-// have a max distance of 1 in each axis.
-const maxSaturation = 0.5;
+const evaluateEnergy = (state, config) => {
+    const colors = state.colors || [];
+    if (colors.length < 2) {
+        return 0;
+    }
 
-const makeBicone = (hsl) => {
-    const [h, s, l] = hsl;
-    let s_adjusted = l < 0.5 ? s * (l / 0.5) : s * ((1 - l) / 0.5);
-    s_adjusted *= maxSaturation;
-    return [h, s_adjusted, l];
-};
+    const distanceOptions = resolveDistanceOptions(config);
+    const maxDistance = getMaxDistance(distanceOptions);
+    if (!Number.isFinite(maxDistance) || maxDistance <= 0) {
+        return 0;
+    }
 
-const transformCoordinates = (hsl) => {
-    const [h, s, l] = hsl;
-    // rearrange and convert to degrees
-    return cylindricalToCartesian([s, h * 360, l]);
-};
-
-const evaluateEnergy = (state) => {
     let totalEnergy = 0;
-    for (let i = 0; i < state.colors.length; i++) {
-        const color = state.colors[i];
-        const okhsl = toOkhsl01(color);
-        const hcl = makeBicone(okhsl);
-        const transformedHcl = transformCoordinates(hcl);
-        for (let j = 0; j < state.colors.length; j++) {
-            if (i === j) continue;           
-            const compareColor = state.colors[j];
-            const compareOkhsl = toOkhsl01(compareColor);
-            const compareHcl = makeBicone(compareOkhsl);
-            // the max distance possible from an hcl color:
-            // if c is greater than 0.5, the max distance is from the hue opposite the color with s = 1 and l = 0.5
-            // if c is less than 0.5, max distance is from white or black
-            // it's white if l is less than 0.5, black if l is greater than 0.5
-            let maxColorHcl;
-            if (hcl[1] > maxSaturation/2) {
-                maxColorHcl = [(okhsl[0] + 0.5) % 1, maxSaturation, 0.5];
-            } else if (hcl[2] < 0.5) {
-                maxColorHcl = [0, 0, 1];
-            } else {
-                maxColorHcl = [0, 0, 0];
+    for (let i = 0; i < colors.length; i++) {
+        const color = colors[i];
+        for (let j = 0; j < colors.length; j++) {
+            if (i === j) continue;
+            const compareColor = colors[j];
+            const difference = deltaE(color, compareColor, distanceOptions);
+            if (!Number.isFinite(difference)) {
+                continue;
             }
-            const thisDistance = cartesianDistance(
-                transformedHcl,
-                transformCoordinates(compareHcl)
-            );
-            const maxDistance = cartesianDistance(
-                transformedHcl,
-                transformCoordinates(maxColorHcl)
-            );
-            // low potential energy is when the distance is close to the max distance
-            totalEnergy += (1 - (thisDistance / maxDistance)) ** 3;
+            const normalized = Math.max(0, Math.min(difference / maxDistance, 1));
+            const complement = 1 - normalized;
+            totalEnergy += complement * complement * complement;
         }
     }
-    return (totalEnergy / (state.colors.length * (state.colors.length - 1)));
+
+    return totalEnergy / (colors.length * (colors.length - 1));
 };
 
 module.exports = evaluateEnergy;

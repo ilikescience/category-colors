@@ -1,16 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const Color = require('colorjs.io').default;
-
 const { runWithOrderOptimization } = require('../src/core/annealing');
+const { createColor } = require('../src/utils/paletteColor');
 
 // Verifies the orchestration logic without relying on the random walk by
 // configuring the state so the simulated annealing loop terminates immediately.
 test('runWithOrderOptimization re-evaluates cost after ordering', () => {
     const colors = [
-        new Color('#ff0000'),
-        new Color('#00ff00'),
-        new Color('#0000ff'),
+        createColor('#ff0000'),
+        createColor('#00ff00'),
+        createColor('#0000ff'),
     ];
     const state = {
         colors,
@@ -20,13 +19,18 @@ test('runWithOrderOptimization re-evaluates cost after ordering', () => {
     };
 
     const config = {
-        deltaEMethod: '2000',
+        colorSpace: {
+            mode: 'rgb',
+            ranges: [
+                [0, 1],
+                [0, 1],
+                [0, 1],
+            ],
+            distance: { method: 'ciede2000', space: 'lab65' },
+        },
         coolingRate: 0.5,
         cutoff: 0.1,
         maxIterations: 10,
-        hueRange: [0, 1],
-        saturationRange: [0, 1],
-        luminosityRange: [0, 1],
         maxMutationDistance: 0.1,
         minMutationDistance: 0.1,
         evalFunctions: [

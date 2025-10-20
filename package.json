@@ -9,7 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "colorjs.io": "^0.6.0-alpha.1",
     "culori": "^4.0.2",
     "munkres-algorithm": "^1.0.2"
   }

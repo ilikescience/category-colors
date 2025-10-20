@@ -1,8 +1,8 @@
-const Color = require('colorjs.io').default;
+const { palettes } = require('../data');
+const { observable10 } = palettes;
 const evaluators = require('../evaluators');
 
 const createDefaultConfig = () => ({
-    colorCount: 8,
     evalFunctions: [
         { function: evaluators.energy, weight: 1 },
         { function: evaluators.range, weight: 1 },
@@ -16,17 +16,22 @@ const createDefaultConfig = () => ({
             function: evaluators.jnd,
             weight: 1,
             cvd: { type: 'deuteranomaly', severity: 0.5 },
-        }    ],
+        },
+        { function: evaluators.similarity, weight: 1 },
+    ],
     coolingRate: 0.999,
     cutoff: 0.0001,
     maxIterations: 100000,
-    deltaEMethod: '2000',
+    colorDistance: {
+        method: 'ciede2000',
+    },
+    colorSpace: {
+        mode: 'okhsl',
+    },
     jnd: 25,
-    hueRange: [0, 1],
-    saturationRange: [0.1, 0.7],
-    luminosityRange: [0.6, 1],
     maxMutationDistance: 0.15,
     minMutationDistance: 0.005,
+    similarityTarget: observable10.slice(),
     initialTemperatureSamples: 100,
     initialAcceptanceRate: 0.95,
 });

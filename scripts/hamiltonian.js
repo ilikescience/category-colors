@@ -1,8 +1,9 @@
-const Color = require("colorjs.io").default;
+const { createColor } = require('../src/utils/paletteColor');
+const { deltaE } = require('../src/utils/deltaE');
 
 const colors = process.argv.slice(2);
 const colorObjects = colors.reduce((acc, color) => {
-    acc[color] = new Color(color);
+    acc[color] = createColor(color);
     return acc;
 }, {});
 
@@ -14,7 +15,7 @@ colors.forEach((color) => {
         if (color !== otherColor) {
             graph[color].push({
                 color: otherColor,
-                distance: colorObjects[color].deltaE(colorObjects[otherColor], "2000"),
+                distance: deltaE(colorObjects[color], colorObjects[otherColor], { method: '2000' }),
             });
         }
     });

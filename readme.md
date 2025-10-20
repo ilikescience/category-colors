@@ -34,13 +34,44 @@ const { createDefaultState } = require('./src/config/defaultState');
 
 There are a number of variables you can modify inside the config factory to adjust the results:
 
-`targetColors` is an array of colors which can be any format readable by [colorjs.io](https://colorjs.io/) - the algorithm will attempt to find colors that are similar to these.
+`targetColors` is an array of colors that culori can parse (hex strings, `{mode:'rgb',...}`, etc.) - the algorithm will attempt to find colors that are similar to these.
 
 `config.evalFunctions` is an array of `{ function, weight, cvd? }` descriptors. Add, remove, or reorder entries to emphasise different evaluation criteria:
 - Increase the weight on `evaluators.energy` to push colors further apart.
 - Increase the weight on `evaluators.range` to keep distances between colors more uniform.
 - Add additional `evaluators.jnd` entries with different `cvd` settings to cover more simulated deficiencies.
 - Swap `evaluators.similarity` or change `config.similarityTarget` to chase a different reference palette.
+
+`config.colorDistance` lets you choose the distance method (see the [Culori distance documentation](https://culorijs.org/docs/color-difference/)) and optional analysis space (default `'lab65'`) used throughout optimisation and reporting. For example:
+
+```js
+const config = createDefaultConfig();
+
+config.colorDistance = {
+  method: 'cmc',
+  space: 'oklab',
+  cmc: { l: 2, c: 1 }, // optional CMC parameters
+};
+
+// pass `config` into prepareInitialState or reportJndIssues(...)
+```
+
+For the most up-to-date list of supported color spaces and distance methods, refer to the [official Culori documentation](https://culorijs.org/docs/).
+
+`config.colorSpace` controls the working space for initialization and mutation. Each entry in `ranges` corresponds to a channel in the chosen mode. Cyclic channels (e.g. hue) are automatically detected from the color mode definition:
+
+```js
+config.colorSpace = {
+  mode: 'okhsl',
+  ranges: [
+    [0, 1],   // hue (automatically wraps at 0/1 boundary)
+    [0.2, 0.8], // saturation
+    [0.4, 0.9], // lightness
+  ],
+};
+```
+
+You can optionally override the automatic wrap detection by providing a `wrap` array, but this is rarely necessary.
 
 ### JND Reporting
 
@@ -51,7 +82,8 @@ const { reports } = require('./src');
 
 const palette = ['#ff0000', '#f20000', '#00ff00', '#0000ff'];
 const result = reports.reportJndIssues(palette, {
-  deltaEMethod: '2000',
+  distanceMethod: 'ciede2000',
+  distanceSpace: 'lab65',
   jndThreshold: 25,
   cvdSimulations: [
     { type: 'protanomaly', severity: 1 },

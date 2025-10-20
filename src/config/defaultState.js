@@ -1,17 +1,9 @@
-const Color = require('colorjs.io').default;
+const { palettes } = require('../data');
+const { observable10 } = palettes;
 
 const createDefaultState = () => {
-    const colors = [
-        new Color('#DDFFDC'),
-        new Color('srgb', [0.0275, 0.725, 0.463]),
-        new Color('srgb', [1.0, 0.918, 0.443]),
-        new Color('srgb', [0.29, 0.843, 0.867]),
-        new Color('srgb', [0.953, 0.451, 0.29]),
-        new Color('srgb', [0.737, 0.737, 0.761]),
-    ];
-
-    colors[0].fixedColor = true;
-    colors[0].fixedOrder = true;
+    // Clone the colors array and set properties on the first color
+    const colors = observable10.slice();
 
     return {
         colors,

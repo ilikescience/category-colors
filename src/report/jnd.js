@@ -1,38 +1,45 @@
-const Color = require('colorjs.io').default;
 const simulateCvd = require('../core/simulateCvd');
 const { deltaE } = require('../utils/deltaE');
+const { createColor } = require('../utils/paletteColor');
 
 const defaultOptions = {
-    deltaEMethod: '2000',
+    distanceMethod: 'ciede2000',
+    distanceSpace: 'lab65',
     jndThreshold: 25,
     cvdSimulations: [],
     paletteSpace: null,
 };
 
-const toColorInstance = (color, paletteSpace) => {
-    if (color instanceof Color) {
+const toColorInstance = (color) => {
+    // Check if it's already a color object with our custom properties
+    if (color && typeof color === 'object' && 'mode' in color && 'fixedColor' in color) {
         return color;
     }
-    const instance = new Color(color);
-    if (paletteSpace) {
-        return instance.to(paletteSpace);
+    if (typeof color === 'string') {
+        return createColor(color);
     }
-    return instance;
+    if (Array.isArray(color)) {
+        return createColor('srgb', color);
+    }
+    if (color && color.mode) {
+        return createColor(color);
+    }
+    throw new Error('Unsupported color format in palette.');
 };
 
 const formatColor = (color, paletteSpace) => {
-    const target = paletteSpace ? color.to(paletteSpace) : color;
-    if (!paletteSpace && target.space && target.space.id === 'srgb') {
-        return target.toString({ format: 'hex' });
+    if (!paletteSpace) {
+        return color.toString({ format: 'hex' });
     }
-    return target.toString({ precision: 4 });
+    const coords = color.to(paletteSpace).coords;
+    return `${paletteSpace}(${coords.map((value) => Number(value.toFixed(4))).join(', ')})`;
 };
 
-const enumeratePairs = (colors, deltaEMethod, threshold) => {
+const enumeratePairs = (colors, distanceOptions, threshold) => {
     const issues = [];
     for (let i = 0; i < colors.length; i++) {
         for (let j = i + 1; j < colors.length; j++) {
-            const deltaEValue = deltaE(colors[i], colors[j], { method: deltaEMethod });
+            const deltaEValue = deltaE(colors[i], colors[j], distanceOptions);
             if (deltaEValue < threshold) {
                 issues.push({ indexA: i, indexB: j, deltaE: deltaEValue });
             }
@@ -42,8 +49,8 @@ const enumeratePairs = (colors, deltaEMethod, threshold) => {
 };
 
 const analysePalette = (paletteColors, options) => {
-    const { deltaEMethod, jndThreshold } = options;
-    const issues = enumeratePairs(paletteColors, deltaEMethod, jndThreshold).map((issue) => ({
+    const { distanceOptions, jndThreshold } = options;
+    const issues = enumeratePairs(paletteColors, distanceOptions, jndThreshold).map((issue) => ({
         indexA: issue.indexA,
         indexB: issue.indexB,
         deltaE: Number(issue.deltaE.toFixed(3)),
@@ -63,7 +70,7 @@ const analysePalette = (paletteColors, options) => {
 const simulatePalette = (paletteColors, simulation, options) => {
     const state = { colors: paletteColors };
     const simulated = simulateCvd(state, simulation.type, simulation.severity);
-    const issues = enumeratePairs(simulated.colors, options.deltaEMethod, options.jndThreshold).map(
+    const issues = enumeratePairs(simulated.colors, options.distanceOptions, options.jndThreshold).map(
         (issue) => ({
             indexA: issue.indexA,
             indexB: issue.indexB,
@@ -101,7 +108,14 @@ const reportJndIssues = (palette, options = {}) => {
         throw new Error('Palette must contain at least two colors.');
     }
     const resolved = { ...defaultOptions, ...options };
-    const paletteColors = palette.map((color) => toColorInstance(color, resolved.paletteSpace));
+    resolved.distanceMethod = resolved.distanceMethod || resolved.deltaEMethod || 'ciede2000';
+    resolved.distanceSpace = resolved.distanceSpace || resolved.distanceOptions?.space || 'lab65';
+    resolved.distanceOptions = {
+        method: resolved.distanceMethod,
+        space: resolved.distanceSpace,
+        cmc: resolved.cmc,
+    };
+    const paletteColors = palette.map((color) => toColorInstance(color));
     return buildReport(paletteColors, resolved);
 };
 
