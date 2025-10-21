@@ -1,9 +1,9 @@
 const { palettes } = require('../data');
-const { observable10 } = palettes;
+const { colorBrewer3_10 } = palettes;
 
 const createDefaultState = () => {
     // Clone the colors array and set properties on the first color
-    const colors = observable10.slice();
+    const colors = colorBrewer3_10.slice();
 
     return {
         colors,

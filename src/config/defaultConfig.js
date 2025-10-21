@@ -1,20 +1,20 @@
 const { palettes } = require('../data');
-const { observable10 } = palettes;
+const { colorBrewer3_10 } = palettes;
 const evaluators = require('../evaluators');
 
 const createDefaultConfig = () => ({
     evalFunctions: [
-        { function: evaluators.energy, weight: 1 },
-        { function: evaluators.range, weight: 1 },
-        { function: evaluators.jnd, weight: 1 },
+        { function: evaluators.energy, weight: 0.15 },
+        { function: evaluators.range, weight: 0.15 },
+        { function: evaluators.jnd, weight: 0.15 },
         {
             function: evaluators.jnd,
-            weight: 1,
+            weight: 0.5,
             cvd: { type: 'protanomaly', severity: 0.5 },
         },
         {
             function: evaluators.jnd,
-            weight: 1,
+            weight: 0.15,
             cvd: { type: 'deuteranomaly', severity: 0.5 },
         },
         { function: evaluators.similarity, weight: 1 },
@@ -28,15 +28,15 @@ const createDefaultConfig = () => ({
     colorSpace: {
         mode: 'okhsl',
         ranges: [
-            [0, 360], // hue
-            [0.2, 1],   // saturation
-            [0.2, 0.9],   // lightness
+            [0, 360],   // hue
+            [0.2, 0.8], // saturation
+            [0.7, 1], // lightness
         ],
     },
-    jnd: 25,
+    jnd: 20,
     maxMutationDistance: 0.15,
     minMutationDistance: 0.005,
-    similarityTarget: observable10.slice(),
+    similarityTarget: colorBrewer3_10.slice(),
     initialTemperatureSamples: 100,
     initialAcceptanceRate: 0.95,
 });

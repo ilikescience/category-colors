@@ -22,7 +22,6 @@ The code is organized to separate algorithm building blocks from evaluation logi
 - `src/config/` provides the default config (`defaultConfig.js`) and starting palette (`defaultState.js`).
 - `src/utils/` contains shared math and color helpers.
 - `src/data/` includes bundled palettes you can swap in for experiments.
-- `scripts/hamiltonian.js` is a standalone script built around the same utilities for graph experiments.
 - `src/report/jnd.js` exposes a helper for generating just-noticeable-difference reports (see below).
 
 To tweak the algorithm, start by copying and editing the factories in `src/config/`:
@@ -64,7 +63,7 @@ For the most up-to-date list of supported color spaces and distance methods, ref
 config.colorSpace = {
   mode: 'okhsl',
   ranges: [
-    [0, 1],   // hue (automatically wraps at 0/1 boundary)
+    [0, 360],   // hue
     [0.2, 0.8], // saturation
     [0.4, 0.9], // lightness
   ],
