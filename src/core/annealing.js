@@ -15,7 +15,7 @@ const stepAnnealing = (state, config) => {
     if (shouldAcceptCandidate(state.cost, candidateState.cost, state.temperature)) {
         Object.assign(state, candidateState);
     }
-    if (state.iterations % 100 === 0) {
+    if (config.logProgress !== false && state.iterations % 100 === 0) {
         console.log(
             `Iteration: ${state.iterations}, Cost: ${state.cost.toFixed(2)}, Temperature: ${state.temperature}`
         );

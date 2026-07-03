@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "bin": {
+    "category-colors": "./bin/category-colors.js"
+  },
   "scripts": {
     "test": "node --test"
   },
