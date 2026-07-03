@@ -4,6 +4,26 @@
 const { minWeightAssign } = require('munkres-algorithm');
 const { deltaE } = require('../../utils/deltaE');
 const { resolveDistanceOptions, getMaxDistance } = require('../../utils/distanceOptions');
+const { sanitizePalette } = require('../../utils/colorSpaceTools');
+
+// Sanitized targets are cached per config.similarityTarget array so the
+// (potentially warning-emitting) sanitization runs once per palette, not once
+// per cost evaluation.
+const SANITIZED_TARGETS = new WeakMap();
+
+const getTargetColors = (config, distanceOptions) => {
+    const targets = config.similarityTarget;
+    if (!Array.isArray(targets) || targets.length === 0) {
+        return [];
+    }
+    if (!SANITIZED_TARGETS.has(targets)) {
+        SANITIZED_TARGETS.set(
+            targets,
+            sanitizePalette(targets, config, distanceOptions, 'similarityTarget')
+        );
+    }
+    return SANITIZED_TARGETS.get(targets);
+};
 
 const normalizeDifference = (difference, maxDistance) => {
     if (!Number.isFinite(difference) || !Number.isFinite(maxDistance) || maxDistance <= 0) {
@@ -31,12 +51,12 @@ const evaluateSimilarity = (state, config) => {
         return 0;
     }
 
-    const targetColors = config.similarityTarget || [];
+    const distanceOptions = resolveDistanceOptions(config);
+    const targetColors = getTargetColors(config, distanceOptions);
     if (targetColors.length === 0) {
         return 0;
     }
 
-    const distanceOptions = resolveDistanceOptions(config);
     const maxDistance = getMaxDistance(distanceOptions);
 
     const { assignments } = minWeightAssign(
