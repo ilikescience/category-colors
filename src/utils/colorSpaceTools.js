@@ -1,18 +1,8 @@
 const culori = require('culori');
 const { randomVector } = require('./utils');
-const { createColor, getChannelWrap } = require('./paletteColor');
+const { createColor, getChannelWrap, getChannels, toModeObject } = require('./paletteColor');
 
-const { random, clampGamut, inGamut, converter, getMode } = culori;
-
-// Helper to create a color object from mode and coords array
-const colorFromCoords = (mode, coords) => {
-    const channels = culori.getMode(mode)?.channels?.filter(ch => ch !== 'alpha') || [];
-    const colorObj = { mode };
-    channels.forEach((ch, i) => {
-        colorObj[ch] = coords[i] ?? 0;
-    });
-    return colorObj;
-};
+const { random, clampGamut, inGamut, converter } = culori;
 
 const clampChannelToRange = (value, range, wrap) => {
     if (!range) {
@@ -61,7 +51,7 @@ const getChannelSpan = (range, wrap) => {
 
 const resolveRanges = (mode, configRanges) => {
     const modeDefinition = culori.getMode(mode);
-    const channels = modeDefinition?.channels?.filter((channel) => channel !== 'alpha') || [];
+    const channels = getChannels(mode) || [];
     if (Array.isArray(configRanges) && configRanges.length === channels.length) {
         return configRanges.slice();
     }
@@ -113,6 +103,7 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
     const originalHex = typeof paletteColor.toString === 'function' ? paletteColor.toString() : '#000000';
     const fixedColor = paletteColor.fixedColor;
     const fixedOrder = paletteColor.fixedOrder;
+    const lockedChannels = paletteColor.lockedChannels || [];
 
     let workingColor = paletteColor;
     let gamutAdjusted = false;
@@ -134,7 +125,7 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
     }
 
     const converted = converter(mode)(workingColor);
-    const channels = culori.getMode(mode)?.channels?.filter(ch => ch !== 'alpha') || [];
+    const channels = getChannels(mode) || [];
     let coords = normalizeCoords(converted, channels, ranges);
 
     let rangeAdjusted = false;
@@ -153,9 +144,10 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
         );
     }
 
-    const adjusted = createColor(colorFromCoords(mode, coords));
+    const adjusted = createColor(toModeObject(mode, coords));
     adjusted.fixedColor = fixedColor;
     adjusted.fixedOrder = fixedOrder;
+    adjusted.lockedChannels = lockedChannels;
     return adjusted;
 };
 
@@ -169,10 +161,10 @@ const randomColorInSpace = (config, distanceOptions) => {
 
     // Build constraints object for culori's random() function
     const constraints = {};
-    const channels = culori.getMode(mode)?.channels || [];
+    const channels = getChannels(mode) || [];
 
     channels.forEach((channel, index) => {
-        if (channel !== 'alpha' && ranges[index]) {
+        if (ranges[index]) {
             constraints[channel] = ranges[index];
         }
     });
@@ -191,19 +183,31 @@ const mutateColorInSpace = (color, distance, config, distanceOptions) => {
     const wrap = colorSpace.wrap || ranges.map((range, index) => getChannelWrap(mode, index, range));
 
     const converted = converter(mode)(color);
-    const channels = culori.getMode(mode)?.channels?.filter(ch => ch !== 'alpha') || [];
+    const channels = getChannels(mode) || [];
     const coords = normalizeCoords(converted, channels, ranges);
-    const dimensions = coords.length;
-    const mutation = randomVector(dimensions, distance);
+    const lockedChannels = color.lockedChannels || [];
+    const freeChannels = coords
+        .map((_, index) => index)
+        .filter((index) => !lockedChannels.includes(index));
+    if (freeChannels.length === 0) {
+        return color;
+    }
+    // Generate the mutation vector over the free channels only, so locking
+    // channels doesn't shrink the effective step size.
+    const mutation = randomVector(freeChannels.length, distance);
+    const deltas = new Array(coords.length).fill(0);
+    freeChannels.forEach((channelIndex, i) => {
+        deltas[channelIndex] = mutation[i];
+    });
     const mutated = coords.map((value, index) => {
         const range = ranges[index];
         const span = getChannelSpan(range, wrap[index]);
-        const delta = mutation[index] * span;
-        return clampChannelToRange(value + delta, range, wrap[index]);
+        return clampChannelToRange(value + deltas[index] * span, range, wrap[index]);
     });
-    const mutatedColor = createColor(colorFromCoords(mode, mutated));
+    const mutatedColor = createColor(toModeObject(mode, mutated));
     mutatedColor.fixedColor = color.fixedColor;
     mutatedColor.fixedOrder = color.fixedOrder;
+    mutatedColor.lockedChannels = color.lockedChannels || [];
     return ensureColorInSpace(mutatedColor, config, distanceOptions, { context: 'mutation', silent: true });
 };
 

@@ -58,10 +58,21 @@ const toModeObject = (mode, coords) => {
 
 const createColor = (input, coords) => {
     let colorObj;
+    let customProps = {};
 
     // If input is already a color object with our custom properties, return it
     if (input && typeof input === 'object' && 'mode' in input && 'fixedColor' in input) {
         return input;
+    }
+
+    // Check if input is an object with a 'color' property (e.g., { color: '#fff', lockedChannels: [0] })
+    if (input && typeof input === 'object' && 'color' in input) {
+        customProps = {
+            fixedColor: input.fixedColor || false,
+            fixedOrder: input.fixedOrder || false,
+            lockedChannels: input.lockedChannels || [],
+        };
+        input = input.color;
     }
 
     if (typeof input === 'string' && coords === undefined) {
@@ -85,8 +96,9 @@ const createColor = (input, coords) => {
     }
 
     // Add custom properties directly to the color object
-    colorObj.fixedColor = false;
-    colorObj.fixedOrder = false;
+    colorObj.fixedColor = customProps.fixedColor !== undefined ? customProps.fixedColor : false;
+    colorObj.fixedOrder = customProps.fixedOrder !== undefined ? customProps.fixedOrder : false;
+    colorObj.lockedChannels = customProps.lockedChannels !== undefined ? customProps.lockedChannels : (input?.lockedChannels || []);
 
     // Add utility methods
     colorObj.toString = function() {
@@ -108,4 +120,5 @@ module.exports = {
     createColor,
     getChannels,
     getChannelWrap,
+    toModeObject,
 };
