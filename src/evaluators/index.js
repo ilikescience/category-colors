@@ -4,4 +4,5 @@ module.exports = {
     range: require('./range/range'),
     similarity: require('./similarity/similarity'),
     jnd: require('./jnd/jnd'),
+    contrast: require('./contrast/contrast'),
 };
