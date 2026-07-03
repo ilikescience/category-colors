@@ -1,6 +1,10 @@
 const { deltaE } = require('../utils/deltaE');
 const { resolveDistanceOptions } = require('../utils/distanceOptions');
 
+// Exhaustive search is O(n!); beyond this many colors, fall back to a
+// pairwise-swap local search instead.
+const MAX_EXHAUSTIVE_COLORS = 10;
+
 const buildDistanceMatrix = (state, config) => {
     if (state.metrics && state.metrics.deltaEMatrix) {
         return state.metrics.deltaEMatrix;
@@ -19,6 +23,13 @@ const buildDistanceMatrix = (state, config) => {
     return matrix;
 };
 
+// Coefficient of variation of the adjacent-pair distances along the path.
+const pathCostFromSums = (sum, sumSquares, edgeCount) => {
+    const mean = sum / edgeCount;
+    const variance = Math.max(sumSquares / edgeCount - mean * mean, 0);
+    return Math.sqrt(variance) / mean;
+};
+
 const evaluatePathCost = (path, matrix) => {
     let sum = 0;
     let sumSquares = 0;
@@ -27,20 +38,11 @@ const evaluatePathCost = (path, matrix) => {
         sum += distance;
         sumSquares += distance * distance;
     }
-    const edgeCount = path.length - 1;
-    const mean = sum / edgeCount;
-    const variance = Math.max(sumSquares / edgeCount - mean * mean, 0);
-    const stdDev = Math.sqrt(variance);
-    return stdDev / mean;
+    return pathCostFromSums(sum, sumSquares, path.length - 1);
 };
 
-const optimizeColorOrder = (state, config) => {
+const findBestOrderExhaustively = (state, matrix) => {
     const count = state.colors.length;
-    if (count <= 2) {
-        return state.colors.slice();
-    }
-
-    const matrix = buildDistanceMatrix(state, config);
     const requiredPositions = state.colors.map((color, index) =>
         color.fixedOrder ? index : null
     );
@@ -52,11 +54,7 @@ const optimizeColorOrder = (state, config) => {
     const dfs = (path, sum, sumSquares) => {
         const position = path.length;
         if (position === count) {
-            const edgeCount = count - 1;
-            const mean = sum / edgeCount;
-            const variance = Math.max(sumSquares / edgeCount - mean * mean, 0);
-            const stdDev = Math.sqrt(variance);
-            const cost = stdDev / mean;
+            const cost = pathCostFromSums(sum, sumSquares, count - 1);
             if (cost < bestCost) {
                 bestCost = cost;
                 bestPath = path.slice();
@@ -97,6 +95,57 @@ const optimizeColorOrder = (state, config) => {
             dfs([i], 0, 0);
             used[i] = false;
         }
+    }
+
+    return bestPath;
+};
+
+const findBestOrderBySwaps = (state, matrix) => {
+    const count = state.colors.length;
+    const path = Array.from({ length: count }, (_, i) => i);
+    const swappable = path.filter((i) => !state.colors[i].fixedOrder);
+    let bestCost = evaluatePathCost(path, matrix);
+
+    let improved = true;
+    while (improved) {
+        improved = false;
+        for (let a = 0; a < swappable.length; a++) {
+            for (let b = a + 1; b < swappable.length; b++) {
+                const i = swappable[a];
+                const j = swappable[b];
+                [path[i], path[j]] = [path[j], path[i]];
+                const cost = evaluatePathCost(path, matrix);
+                if (cost < bestCost) {
+                    bestCost = cost;
+                    improved = true;
+                } else {
+                    [path[i], path[j]] = [path[j], path[i]];
+                }
+            }
+        }
+    }
+
+    return path;
+};
+
+const optimizeColorOrder = (state, config) => {
+    const count = state.colors.length;
+    if (count <= 2) {
+        return state.colors.slice();
+    }
+
+    const matrix = buildDistanceMatrix(state, config);
+
+    let bestPath;
+    if (count > MAX_EXHAUSTIVE_COLORS) {
+        if (config.logProgress !== false) {
+            console.warn(
+                `Palette has ${count} colors; using swap-based order optimization instead of exhaustive search.`
+            );
+        }
+        bestPath = findBestOrderBySwaps(state, matrix);
+    } else {
+        bestPath = findBestOrderExhaustively(state, matrix);
     }
 
     if (!bestPath) {

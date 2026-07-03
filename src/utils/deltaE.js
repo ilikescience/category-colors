@@ -28,7 +28,7 @@ const normalizeMethod = (method = 'ciede2000') => {
     }
 };
 
-const getDifferenceFunction = (method, options = {}) => {
+const createDifferenceFunction = (method, options = {}) => {
     switch (method) {
         case 'ciede2000':
             return differenceCiede2000();
@@ -43,6 +43,22 @@ const getDifferenceFunction = (method, options = {}) => {
         default:
             throw new Error(`Unsupported deltaE method: ${method}`);
     }
+};
+
+// Difference functions are pure; cache them so the annealing loop doesn't
+// construct a new one on every distance calculation.
+const DIFFERENCE_CACHE = new Map();
+
+const getDifferenceFunction = (method, options = {}) => {
+    const key = JSON.stringify({
+        method,
+        space: options.space || null,
+        cmc: options.cmc || null,
+    });
+    if (!DIFFERENCE_CACHE.has(key)) {
+        DIFFERENCE_CACHE.set(key, createDifferenceFunction(method, options));
+    }
+    return DIFFERENCE_CACHE.get(key);
 };
 
 const deltaE = (colorA, colorB, options = {}) => {

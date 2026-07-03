@@ -1,36 +1,35 @@
 const saliencies = require('./saliencies.json');
-const { converter, getMode } = require('culori');
+const { converter } = require('culori');
+const { getChannels } = require('../../utils/paletteColor');
 
 const toLab = converter('lab65');
-const labChannels = getMode('lab65').channels.filter(ch => ch !== 'alpha');
+const labChannels = getChannels('lab65');
 
-Array.prototype.isEqualToArray = function (array) {
-    if (!array) return false;
-    if (this.length != array.length) return false;
-    for (var i = 0, l = this.length; i < l; i++) {
-        if (this[i] instanceof Array && array[i] instanceof Array) {
-            if (!this[i].isEqualToArray(array[i])) return false;
-        } else if (this[i] != array[i]) {
-            return false;
-        }
+// saliency data is in lab-d65, rounded to the nearest 5
+let saliencyByLab = null;
+const getSaliencyMap = () => {
+    if (!saliencyByLab) {
+        saliencyByLab = new Map(
+            saliencies.map(({ colorValue, saliency }) => [colorValue.join(','), saliency])
+        );
     }
-    return true;
+    return saliencyByLab;
 };
 
 const saliency = (color) => {
-    // saliency data is in lab-d65, rounded to the nearest 5
     const converted = toLab(color);
-    // Extract coordinates directly from Culori color object
-    const lab = labChannels.map(ch => Math.round((converted[ch] ?? 0) / 5) * 5);
-    const datum = saliencies.find((item) => {
-        return item.colorValue.isEqualToArray(lab);
-    });
-    return datum.saliency;
+    const key = labChannels
+        .map((channel) => Math.round((converted[channel] ?? 0) / 5) * 5)
+        .join(',');
+    return getSaliencyMap().get(key) ?? 0;
 };
 
 const evaluateSaliency = (state) => {
-    const saliencies = state.colors.map((color) => saliency(color));
-    return saliencies.reduce((a, b) => a + b) / saliencies.length;
-}
+    const colors = state.colors || [];
+    if (colors.length === 0) {
+        return 0;
+    }
+    return colors.reduce((sum, color) => sum + saliency(color), 0) / colors.length;
+};
 
 module.exports = evaluateSaliency;
