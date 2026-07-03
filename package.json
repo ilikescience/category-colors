@@ -1,7 +1,7 @@
 {
   "name": "categorycolors",
   "version": "1.0.0",
-  "description": "",
+  "description": "Generate color palettes for categorical data visualization using simulated annealing",
   "main": "index.js",
   "bin": {
     "category-colors": "./bin/category-colors.js"
@@ -9,8 +9,8 @@
   "scripts": {
     "test": "node --test"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Matt Ström-Awn <matt@mu.design>",
+  "license": "MIT",
   "dependencies": {
     "culori": "^4.0.2",
     "munkres-algorithm": "^1.0.2"
