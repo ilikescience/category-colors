@@ -165,6 +165,31 @@ const { finalState } = generatePalette({ state: brandColors, config });
 
 See [examples/wcagContrast.js](examples/wcagContrast.js) for complete examples including dark mode and adjacent color checking.
 
+### Avoiding Specific Colors
+
+The `avoid` evaluator is the inverse of `similarity`: it pushes the palette away from a set of colors instead of pulling it toward them. Use it to keep generated colors clear of a brand color, a background, or semantic colors (error red, success green) that categorical colors shouldn't be confused with.
+
+Colors and radius are specified on the evalFunction descriptor:
+
+```js
+const evaluators = require('./src/evaluators');
+
+const config = {
+    evalFunctions: [
+        { function: evaluators.energy, weight: 0.2 },
+        {
+            function: evaluators.avoid,
+            weight: 0.8,
+            colors: ['#e74c3c', '#2ecc71'],  // Colors to steer away from
+            radius: 0.15,                    // Penalty radius, as a fraction of the
+                                             // metric's maximum distance (default 0.15)
+        },
+    ],
+};
+```
+
+Each palette color is charged for how far it has intruded into the radius around its nearest avoid color — a linear ramp from 1 (exact match) to 0 (at the radius edge) — and costs nothing once outside every radius. Unlike similarity targets, avoid colors are measured exactly as given rather than coerced into the working color space, since the point is distance from the actual color. Multiple `avoid` entries with different color sets, radii, and weights can be combined.
+
 ### Creating Custom Evaluators
 
 The codebase follows a standardized pattern for evaluators, making it easy to create your own.

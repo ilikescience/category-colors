@@ -7,7 +7,7 @@ const { createColor } = require('../src/utils/paletteColor');
 // These tests focus on the deterministic parts of initializeColors by
 // mocking Math.random so the generated colors are reproducible.
 
-test('initializeColors preserves fixed colors and fills remaining slots within the configured range', () => {
+test('initializeColors preserves fixed colors exactly and fills remaining slots within the configured range', () => {
     const fixedColor = createColor('#ff0000');
     fixedColor.fixedColor = true;
 
@@ -32,10 +32,9 @@ test('initializeColors preserves fixed colors and fills remaining slots within t
     assert.notStrictEqual(result.colors, state.colors, 'should create a new colors array');
     assert.strictEqual(result.colors.length, config.colorCount);
     assert.ok(result.colors[0].fixedColor, 'fixed colors should remain flagged');
-    const [fh, fs, fl] = result.colors[0].to('okhsl').coords;
-    assert.ok(fh >= config.colorSpace.ranges[0][0] && fh <= config.colorSpace.ranges[0][1]);
-    assert.ok(fs >= config.colorSpace.ranges[1][0] && fs <= config.colorSpace.ranges[1][1]);
-    assert.ok(fl >= config.colorSpace.ranges[2][0] && fl <= config.colorSpace.ranges[2][1]);
+    // Value-fixed colors keep their exact value even when it falls outside
+    // the working ranges (#ff0000 has okhsl saturation 1, above the 0.8 cap)
+    assert.strictEqual(String(result.colors[0]), String(fixedColor));
 
     const generatedColor = result.colors[1];
     const [h, s, l] = generatedColor.to('okhsl').coords;

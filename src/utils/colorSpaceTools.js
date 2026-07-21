@@ -100,6 +100,12 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
     const wrap = colorSpace.wrap || ranges.map((range, index) => getChannelWrap(mode, index, range));
 
     const paletteColor = createColor(color);
+    // Value-fixed colors keep their exact value; coercing them into the working
+    // space would silently change what the user pinned. This is the single
+    // place coercion happens, so honoring the flag here covers every caller.
+    if (paletteColor.fixedColor) {
+        return paletteColor;
+    }
     const originalHex = typeof paletteColor.toString === 'function' ? paletteColor.toString() : '#000000';
     const fixedColor = paletteColor.fixedColor;
     const fixedOrder = paletteColor.fixedOrder;
