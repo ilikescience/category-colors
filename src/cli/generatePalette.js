@@ -171,4 +171,5 @@ module.exports = {
     toHexPalette,
     buildConfig,
     buildState,
+    resolveModule,
 };

@@ -8,6 +8,7 @@ const { spawnSync } = require('node:child_process');
 const projectRoot = path.resolve(__dirname, '..');
 const cliPath = path.resolve(projectRoot, 'bin', 'category-colors.js');
 const configFixture = path.resolve(__dirname, 'fixtures', 'cliConfig.js');
+const paletteFixture = path.resolve(__dirname, 'fixtures', 'cliPalette.js');
 
 const runCli = (args) => spawnSync('node', [cliPath, ...args], {
     cwd: projectRoot,
@@ -47,4 +48,44 @@ test('CLI writes palette format to file', () => {
     } finally {
         fs.rmSync(tempDir, { recursive: true, force: true });
     }
+});
+
+test('CLI report audits positional colors as JSON', () => {
+    const result = runCli([
+        'report',
+        '#ff0000',
+        '#f10000',
+        '#00ff00',
+        '--format',
+        'json',
+        '--threshold',
+        '10',
+    ]);
+    assert.strictEqual(result.status, 0, result.stderr);
+    const parsed = JSON.parse(result.stdout.trim());
+    assert.equal(parsed.totalIssues, 1);
+    assert.equal(parsed.tests[0].label, 'normal');
+    assert.equal(parsed.tests[0].issues[0].indexA, 0);
+    assert.equal(parsed.tests[0].issues[0].indexB, 1);
+});
+
+test('CLI report loads a palette file and includes CVD simulations', () => {
+    const result = runCli([
+        'report',
+        '--palette',
+        paletteFixture,
+        '--threshold',
+        '15',
+        '--cvd',
+        'deuteranomaly:0.5',
+    ]);
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /JND report — 3 colors/);
+    assert.match(result.stdout, /deuteranomaly:0\.5/);
+});
+
+test('CLI report exits with an error when no palette is provided', () => {
+    const result = runCli(['report']);
+    assert.strictEqual(result.status, 1);
+    assert.match(result.stderr, /No palette provided/);
 });

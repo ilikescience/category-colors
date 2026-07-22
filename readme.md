@@ -23,6 +23,24 @@ Helpful flags:
 - `--output result.json` – write the result to a file; otherwise prints to stdout.
 - `--quiet` – suppress progress logging during annealing.
 
+Audit an existing palette for just-noticeable-difference issues without writing any code:
+
+```bash
+npx categorycolors report '#ff0000' '#f10000' '#00ff00' --threshold 20
+# or load the palette from a file (array export or state object):
+node ./bin/category-colors.js report --palette ./palette.js --cvd deuteranomaly:0.5
+```
+
+Report flags:
+- `[colors...]` – hex colors to audit when `--palette` is not used.
+- `--palette path/to/palette.js` – load colors from a JS/JSON module (array or state object).
+- `--method <name>` / `--space <name>` – distance method (default `ciede2000`) and space (default `lab65`).
+- `--threshold <num>` – flag pairs whose ΔE falls below this value (default `25`).
+- `--cvd <type:severity>` – add a CVD simulation such as `protanomaly:1` (repeatable).
+- `--palette-space <space>` – format reported colors in this space instead of hex.
+- `--format text|json` – control the output representation.
+- `--output result.json` – write the report to a file instead of stdout.
+
 The legacy `node index.js` command still runs the default optimization if you prefer not to use the CLI.
 
 ### Testing
