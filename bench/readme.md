@@ -13,6 +13,10 @@ node bench/run.js --format json -o results.json
 This directory is excluded from the npm tarball by the `files` field in
 `package.json`; it ships with the repository, not the package.
 
+See [related-work.md](related-work.md) for the surrounding literature, where
+this library sits within it, and what the comparison still needs;
+[references.bib](references.bib) has the citations.
+
 ## What is measured
 
 | Metric | Why it is here |

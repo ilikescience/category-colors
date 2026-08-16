@@ -1,0 +1,195 @@
+% References for the category-colors write-up.
+%
+% Author lists, titles, venues and years here were checked against the
+% publisher or arXiv listing. Page numbers and DOIs were not all verified
+% individually — check every entry against the publisher of record before
+% submitting anything. Entries marked UNVERIFIED have a field I could not
+% confirm and should be re-derived from the source.
+
+% ── Optimization-based categorical palette generation ───────────────────────
+% The direct neighbours. Read these before claiming novelty.
+
+@article{gramazio2017colorgorical,
+  author  = {Gramazio, Connor C. and Laidlaw, David H. and Schloss, Karen B.},
+  title   = {Colorgorical: Creating Discriminable and Preferable Color Palettes
+             for Information Visualization},
+  journal = {IEEE Transactions on Visualization and Computer Graphics},
+  volume  = {23},
+  number  = {1},
+  year    = {2017},
+  doi     = {10.1109/TVCG.2016.2598918},
+  note    = {Weighted sum over perceptual distance, name difference, name
+             uniqueness and pair preference. Tool at http://vrl.cs.brown.edu/color,
+             source at https://github.com/connorgr/colorgorical}
+}
+
+@article{lu2021palettailor,
+  author  = {Lu, Kecheng and Feng, Mi and Chen, Xin and Sedlmair, Michael and
+             Deussen, Oliver and Lischinski, Dani and Cheng, Zhanglin and
+             Wang, Yunhai},
+  title   = {Palettailor: Discriminable Colorization for Categorical Data},
+  journal = {IEEE Transactions on Visualization and Computer Graphics},
+  year    = {2021},
+  eprint  = {2009.02969},
+  archivePrefix = {arXiv},
+  note    = {UNVERIFIED volume/number/pages. Simulated annealing over point
+             distinctness, name difference and color discrimination. The
+             closest methodological neighbour to this work.}
+}
+
+@misc{petroff2021accessible,
+  author        = {Petroff, Matthew A.},
+  title         = {Accessible Color Sequences for Data Visualization},
+  year          = {2021},
+  eprint        = {2107.02270},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.GR},
+  note          = {Constrained optimization with minimum-perceptual-distance
+                   constraints under simulated CVD, minimum-lightness-distance
+                   for grayscale, and a color-saliency term. Last revised 2024.}
+}
+
+@inproceedings{tseng2026catpaw,
+  author        = {Tseng, Chin and Wang, Arran Zeyu and
+                   Quadri, Ghulam Jilani and Szafir, Danielle Albers},
+  title         = {Redundant is Not Redundant: Automating Efficient Categorical
+                   Palette Design Unifying Color and Shape Encodings with CatPAW},
+  booktitle     = {Proceedings of the CHI Conference on Human Factors in
+                   Computing Systems},
+  year          = {2026},
+  eprint        = {2602.06792},
+  archivePrefix = {arXiv},
+  note          = {Conditionally accepted to CHI 2026. Four crowdsourced
+                   experiments on redundant colour-shape encoding.}
+}
+
+% ── Perceptual foundations the evaluators are built on ──────────────────────
+
+@article{sharma2005ciede2000,
+  author  = {Sharma, Gaurav and Wu, Wencheng and Dalal, Edul N.},
+  title   = {The {CIEDE2000} Color-Difference Formula: Implementation Notes,
+             Supplementary Test Data, and Mathematical Observations},
+  journal = {Color Research \& Application},
+  volume  = {30},
+  number  = {1},
+  pages   = {21--30},
+  year    = {2005},
+  doi     = {10.1002/col.20070},
+  note    = {The distance metric behind every distance-based evaluator.}
+}
+
+@article{machado2009physiologically,
+  author  = {Machado, Gustavo M. and Oliveira, Manuel M. and
+             Fernandes, Leandro A. F.},
+  title   = {A Physiologically-based Model for Simulation of Color Vision
+             Deficiency},
+  journal = {IEEE Transactions on Visualization and Computer Graphics},
+  volume  = {15},
+  number  = {6},
+  pages   = {1291--1298},
+  year    = {2009},
+  doi     = {10.1109/TVCG.2009.113},
+  note    = {What culori's deficiency filters implement, so what
+             src/core/simulateCvd.js actually applies.}
+}
+
+@article{brettel1997computerized,
+  author  = {Brettel, Hans and Vi{\'e}not, Fran{\c{c}}oise and Mollon, John D.},
+  title   = {Computerized Simulation of Color Appearance for Dichromats},
+  journal = {Journal of the Optical Society of America A},
+  volume  = {14},
+  number  = {10},
+  pages   = {2647--2655},
+  year    = {1997},
+  doi     = {10.1364/JOSAA.14.002647},
+  note    = {Cited by the essay. Note the implementation actually uses
+             Machado et al. — do not cite this one as the method in use.}
+}
+
+@inproceedings{stone2014engineering,
+  author    = {Stone, Maureen and Szafir, Danielle Albers and Setlur, Vidya},
+  title     = {An Engineering Model for Color Difference as a Function of Size},
+  booktitle = {Color and Imaging Conference (CIC)},
+  year      = {2014},
+  note      = {UNVERIFIED pages. The size-dependent JND result behind the
+               `jnd` evaluator's threshold.}
+}
+
+@article{szafir2018modeling,
+  author  = {Szafir, Danielle Albers},
+  title   = {Modeling Color Difference for Visualization Design},
+  journal = {IEEE Transactions on Visualization and Computer Graphics},
+  volume  = {24},
+  number  = {1},
+  pages   = {392--401},
+  year    = {2018},
+  doi     = {10.1109/TVCG.2017.2744359},
+  note    = {Successor to the 2014 engineering model; a reviewer may ask why
+             the thresholds here are not drawn from this instead.}
+}
+
+@inproceedings{heer2012color,
+  author    = {Heer, Jeffrey and Stone, Maureen},
+  title     = {Color Naming Models for Color Selection, Image Editing and
+               Palette Design},
+  booktitle = {Proceedings of the SIGCHI Conference on Human Factors in
+               Computing Systems (CHI)},
+  pages     = {1007--1016},
+  year      = {2012},
+  doi       = {10.1145/2207676.2208547},
+  note      = {The source of src/evaluators/saliency/saliencies.js. Discretizes
+               the CIELAB gamut into 8,325 voxels and scores each by the entropy
+               of its colour-term distribution over the xkcd colour survey.
+               http://vis.stanford.edu/color-names/}
+}
+
+@inproceedings{kim2019colornames,
+  author    = {Kim, Younghoon and Thayer, Kyle and Heer, Jeffrey},
+  title     = {Color Names Across Languages: Salient Colors and Term Translation
+               in Multilingual Color Naming Models},
+  booktitle = {EuroVis (Short Papers)},
+  year      = {2019},
+  note      = {UNVERIFIED author list — a third author may be missing. Extends
+               heer2012color beyond English; relevant if saliency is claimed as
+               anything other than English-specific.}
+}
+
+@article{setlur2016linguistic,
+  author  = {Setlur, Vidya and Stone, Maureen C.},
+  title   = {A Linguistic Approach to Categorical Color Assignment for Data
+             Visualization},
+  journal = {IEEE Transactions on Visualization and Computer Graphics},
+  volume  = {22},
+  number  = {1},
+  year    = {2016},
+  doi     = {10.1109/TVCG.2015.2467471},
+  note    = {UNVERIFIED pages.}
+}
+
+% ── Evaluation, linting, and design tooling ─────────────────────────────────
+
+@article{mcnutt2025linters,
+  author  = {McNutt, Andrew and Stone, Maureen and Heer, Jeffrey},
+  title   = {Mixing Linters with {GUIs}: A Color Palette Design Probe},
+  journal = {IEEE Transactions on Visualization and Computer Graphics},
+  year    = {2025},
+  note    = {Proc. IEEE VIS. The color-buddy tool. A design probe about linter
+             UX, not a generator — see related-work.md on why the comparison
+             axis matters. https://color-buddy.netlify.app}
+}
+
+% ── Reference palettes used in the benchmark ────────────────────────────────
+
+@article{harrower2003colorbrewer,
+  author  = {Harrower, Mark and Brewer, Cynthia A.},
+  title   = {{ColorBrewer.org}: An Online Tool for Selecting Colour Schemes for
+             Maps},
+  journal = {The Cartographic Journal},
+  volume  = {40},
+  number  = {1},
+  pages   = {27--37},
+  year    = {2003},
+  doi     = {10.1179/000870403235002042},
+  note    = {Qualitative sets are designed for maps under lightness
+             constraints this benchmark does not model.}
+}
