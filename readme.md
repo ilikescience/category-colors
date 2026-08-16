@@ -11,7 +11,7 @@ palette design as an optimization problem instead: you weight the goals you care
 about, and simulated annealing searches for the least-wrong compromise.
 
 This is the code behind the essay
-[How to pick the least wrong colors](https://matthewstrom.com/writing/how-to-pick-the-least-wrong-colors/).
+[How to pick the least wrong colors](https://mattstromawn.com/writing/how-to-pick-the-least-wrong-colors/).
 
 ## Install
 
@@ -341,6 +341,15 @@ Tests use the Node.js built-in runner; there are no dev dependencies. Beyond the
 unit tests, the suite checks that every `exports` subpath resolves to a file
 that ships, and that nothing reachable from the main entry imports a Node
 builtin.
+
+## Credits
+
+The evaluators are built on published color science:
+
+- **CIEDE2000** — Sharma, G., Wu, W., and Dalal, E. N. "The CIEDE2000 Color-Difference Formula." *Color Research & Application*, 2005. Used by every distance-based evaluator.
+- **CVD simulation** — Machado, G. M., Oliveira, M. M., and Fernandes, L. A. F. "A Physiologically-based Model for Simulation of Color Vision Deficiency." *IEEE TVCG*, 2009, via culori's deficiency filters.
+- **Just-noticeable difference** — Stone, M., Szafir, D. A., and Setlur, V. "An Engineering Model for Color Difference as a Function of Size." *Color and Imaging Conference*, 2014.
+- **Saliency** — Heer, J. and Stone, M. "[Color Naming Models for Color Selection, Image Editing and Palette Design](https://vis.stanford.edu/color-names/)." *ACM CHI*, 2012. The `saliency` evaluator's lookup table is their 8,325-voxel CIELAB color-naming model, scoring how consistently people name each color.
 
 ## License
 
