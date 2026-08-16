@@ -1,4 +1,4 @@
-const { createColor } = require('../utils/paletteColor');
+import { createColor } from '../utils/paletteColor.js';
 
 const observable10 = [
     createColor('#4269d0'),
@@ -92,11 +92,4 @@ const colorBrewer3_10 = [
     createColor('#bc80bd'),
 ];
 
-module.exports = {
-    observable10,
-    d3category10,
-    carbon,
-    tableau10,
-    tableau20,
-    colorBrewer3_10,
-};
+export { observable10, d3category10, carbon, tableau10, tableau20, colorBrewer3_10 };

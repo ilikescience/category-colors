@@ -1,5 +1,5 @@
-const { reportJndIssues } = require('../report/jnd');
-const { resolveModule } = require('./generatePalette');
+import { reportJndIssues } from '../report/jnd.js';
+import { resolveModule } from './generatePalette.js';
 
 const extractColors = (loaded) => {
     if (Array.isArray(loaded)) {
@@ -29,6 +29,7 @@ const runReport = ({
     jndThreshold,
     cvdSimulations,
     paletteSpace,
+    includePairs = false,
 } = {}) => {
     const palette = loadPaletteColors({ palettePath, colors });
     const report = reportJndIssues(palette, {
@@ -37,6 +38,9 @@ const runReport = ({
         jndThreshold,
         cvdSimulations,
         paletteSpace,
+        // Off by default: the text output only ever prints issues, and every
+        // passing pair in the JSON is weight nobody asked for.
+        includePairs,
     });
     return { report, colorCount: palette.length };
 };
@@ -66,7 +70,4 @@ const formatTextReport = (report, context = {}) => {
     return [header, ...report.tests.map(formatTest)].join('\n\n');
 };
 
-module.exports = {
-    runReport,
-    formatTextReport,
-};
+export { runReport, formatTextReport };

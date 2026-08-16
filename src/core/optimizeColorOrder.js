@@ -1,5 +1,5 @@
-const { deltaE } = require('../utils/deltaE');
-const { resolveDistanceOptions } = require('../utils/distanceOptions');
+import { deltaE } from '../utils/deltaE.js';
+import { resolveDistanceOptions } from '../utils/distanceOptions.js';
 
 // Exhaustive search is O(n!); beyond this many colors, fall back to a
 // pairwise-swap local search instead.
@@ -155,6 +155,4 @@ const optimizeColorOrder = (state, config) => {
     return bestPath.map((index) => state.colors[index]);
 };
 
-module.exports = {
-    optimizeColorOrder,
-};
+export { optimizeColorOrder };

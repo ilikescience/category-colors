@@ -1,6 +1,6 @@
-const { cost } = require('./cost');
-const { resolveDistanceOptions } = require('../utils/distanceOptions');
-const { mutateColorInSpace } = require('../utils/colorSpaceTools');
+import { cost } from './cost.js';
+import { resolveDistanceOptions } from '../utils/distanceOptions.js';
+import { mutateColorInSpace } from '../utils/colorSpaceTools.js';
 
 const getNeighbor = (state, config) => {
     const distanceOptions = resolveDistanceOptions(config);
@@ -26,6 +26,4 @@ const getNeighbor = (state, config) => {
     return neighborState;
 };
 
-module.exports = {
-    getNeighbor,
-};
+export { getNeighbor };

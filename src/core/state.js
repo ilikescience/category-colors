@@ -1,6 +1,6 @@
-const { initializeColors } = require('./initializeColors');
-const { cost } = require('./cost');
-const { findInitialTemperature } = require('./findInitialTemperature');
+import { initializeColors } from './initializeColors.js';
+import { cost } from './cost.js';
+import { findInitialTemperature } from './findInitialTemperature.js';
 
 const prepareInitialState = (state, config) => {
     const initializedState = initializeColors(state, config);
@@ -18,6 +18,4 @@ const prepareInitialState = (state, config) => {
     return workingState;
 };
 
-module.exports = {
-    prepareInitialState,
-};
+export { prepareInitialState };

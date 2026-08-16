@@ -1,7 +1,7 @@
-const simulateCvd = require('../core/simulateCvd');
-const { deltaE } = require('../utils/deltaE');
-const { createColor, getChannels } = require('../utils/paletteColor');
-const { converter } = require('culori');
+import simulateCvd from '../core/simulateCvd.js';
+import { deltaE } from '../utils/deltaE.js';
+import { createColor, getChannels } from '../utils/paletteColor.js';
+import { converter } from 'culori';
 
 const defaultOptions = {
     distanceMethod: 'ciede2000',
@@ -9,6 +9,7 @@ const defaultOptions = {
     jndThreshold: 25,
     cvdSimulations: [],
     paletteSpace: null,
+    includePairs: true,
 };
 
 const toColorInstance = (color) => {
@@ -38,58 +39,61 @@ const formatColor = (color, paletteSpace) => {
     return `${paletteSpace}(${coords.map((value) => Number(value.toFixed(4))).join(', ')})`;
 };
 
-const enumeratePairs = (colors, distanceOptions, threshold) => {
+/**
+ * Builds one test's pair records.
+ *
+ * Colors are formatted once each up front rather than once per pair: every
+ * color appears in n-1 pairs, so formatting inside the loop re-runs a culori
+ * conversion O(n^2) times to produce n distinct strings.
+ *
+ * `issues` is a filtered view of `pairs` and shares its objects, the way
+ * Array#filter always does. The threshold test runs on the full-precision
+ * distance, before it is rounded for display.
+ */
+const buildTest = (label, description, testColors, options) => {
+    const { distanceOptions, jndThreshold, paletteSpace, includePairs } = options;
+    const formatted = testColors.map((color) => formatColor(color, paletteSpace));
+
+    const pairs = [];
     const issues = [];
-    for (let i = 0; i < colors.length; i++) {
-        for (let j = i + 1; j < colors.length; j++) {
-            const deltaEValue = deltaE(colors[i], colors[j], distanceOptions);
-            if (deltaEValue < threshold) {
-                issues.push({ indexA: i, indexB: j, deltaE: deltaEValue });
+    for (let i = 0; i < testColors.length; i++) {
+        for (let j = i + 1; j < testColors.length; j++) {
+            const distance = deltaE(testColors[i], testColors[j], distanceOptions);
+            const pair = {
+                indexA: i,
+                indexB: j,
+                deltaE: Number(distance.toFixed(3)),
+                colors: [formatted[i], formatted[j]],
+            };
+            pairs.push(pair);
+            if (distance < jndThreshold) {
+                issues.push(pair);
             }
         }
     }
-    return issues;
+
+    const test = { label, description, issues, issueCount: issues.length };
+    // Opt-out: `pairs` is O(n^2) per test and is mostly pairs that passed, which
+    // dominates a serialized report. Callers that only want the failures — the
+    // CLI's default output among them — can leave it off.
+    if (includePairs !== false) {
+        test.pairs = pairs;
+    }
+    return test;
 };
 
-const analysePalette = (paletteColors, options) => {
-    const { distanceOptions, jndThreshold } = options;
-    const issues = enumeratePairs(paletteColors, distanceOptions, jndThreshold).map((issue) => ({
-        indexA: issue.indexA,
-        indexB: issue.indexB,
-        deltaE: Number(issue.deltaE.toFixed(3)),
-        colors: [
-            formatColor(paletteColors[issue.indexA], options.paletteSpace),
-            formatColor(paletteColors[issue.indexB], options.paletteSpace),
-        ],
-    }));
-    return {
-        label: 'normal',
-        description: 'Base case (no CVD simulation)',
-        issues,
-        issueCount: issues.length,
-    };
-};
+const analysePalette = (paletteColors, options) =>
+    buildTest('normal', 'Base case (no CVD simulation)', paletteColors, options);
 
 const simulatePalette = (paletteColors, simulation, options) => {
     const state = { colors: paletteColors };
     const simulated = simulateCvd(state, simulation.type, simulation.severity);
-    const issues = enumeratePairs(simulated.colors, options.distanceOptions, options.jndThreshold).map(
-        (issue) => ({
-            indexA: issue.indexA,
-            indexB: issue.indexB,
-            deltaE: Number(issue.deltaE.toFixed(3)),
-            colors: [
-                formatColor(simulated.colors[issue.indexA], options.paletteSpace),
-                formatColor(simulated.colors[issue.indexB], options.paletteSpace),
-            ],
-        })
+    return buildTest(
+        `${simulation.type}:${simulation.severity}`,
+        `CVD simulation (${simulation.type}, severity ${simulation.severity})`,
+        simulated.colors,
+        options
     );
-    return {
-        label: `${simulation.type}:${simulation.severity}`,
-        description: `CVD simulation (${simulation.type}, severity ${simulation.severity})`,
-        issues,
-        issueCount: issues.length,
-    };
 };
 
 const buildReport = (paletteColors, options) => {
@@ -122,6 +126,4 @@ const reportJndIssues = (palette, options = {}) => {
     return buildReport(paletteColors, resolved);
 };
 
-module.exports = {
-    reportJndIssues,
-};
+export { reportJndIssues };

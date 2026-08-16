@@ -1,8 +1,8 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { optimizeColorOrder } = require('../src/core/optimizeColorOrder');
-const { createColor } = require('../src/utils/paletteColor');
-const { deltaE } = require('../src/utils/deltaE');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { optimizeColorOrder } from '../src/core/optimizeColorOrder.js';
+import { createColor } from '../src/utils/paletteColor.js';
+import { deltaE } from '../src/utils/deltaE.js';
 
 // A simple helper to mirror the internal cost calculation for verification.
 const pathCost = (path, colors, distanceOptions) => {

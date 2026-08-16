@@ -7,7 +7,7 @@
  * @returns {number} The calculated initial temperature.
  */
 
-const { getNeighbor } = require('./getNeighbor');
+import { getNeighbor } from './getNeighbor.js';
 
 const findInitialTemperature = (initialState, config, numSamples = 100, targetAcceptanceRate = 0.95) => {
     if (!Number.isFinite(initialState.cost)) {
@@ -51,4 +51,4 @@ const findInitialTemperature = (initialState, config, numSamples = 100, targetAc
     return initialTemp;
 };
 
-module.exports = { findInitialTemperature };
+export { findInitialTemperature };

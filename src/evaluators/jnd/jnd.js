@@ -1,5 +1,5 @@
-const { deltaE } = require('../../utils/deltaE');
-const { resolveDistanceOptions } = require('../../utils/distanceOptions');
+import { deltaE } from '../../utils/deltaE.js';
+import { resolveDistanceOptions } from '../../utils/distanceOptions.js';
 
 // A revised JND evaluation with a continuous penalty
 const evaluateJnd = (state, config) => {
@@ -31,4 +31,4 @@ const evaluateJnd = (state, config) => {
   return cost / numPairs;
 };
 
-module.exports = evaluateJnd;
+export default evaluateJnd;

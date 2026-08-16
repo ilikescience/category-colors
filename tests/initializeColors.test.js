@@ -1,8 +1,8 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { initializeColors } = require('../src/core/initializeColors');
-const { withMockedRandom } = require('./testUtils');
-const { createColor } = require('../src/utils/paletteColor');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { initializeColors } from '../src/core/initializeColors.js';
+import { withMockedRandom } from './testUtils.js';
+import { createColor } from '../src/utils/paletteColor.js';
 
 // These tests focus on the deterministic parts of initializeColors by
 // mocking Math.random so the generated colors are reproducible.

@@ -1,18 +1,12 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
-const { version } = require('../package.json');
-const {
-    generatePalette,
-    formatTextSummary,
-    buildJsonSummary,
-    toHexPalette,
-} = require('../src/cli/generatePalette');
-const {
-    runReport,
-    formatTextReport,
-} = require('../src/cli/reportPalette');
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { generatePalette, formatTextSummary, buildJsonSummary, toHexPalette, } from '../src/cli/generatePalette.js';
+import { runReport, formatTextReport, } from '../src/cli/reportPalette.js';
+
+const { version } = createRequire(import.meta.url)('../package.json');
 
 const printUsage = () => {
     console.log(`category-colors v${version}
@@ -39,6 +33,7 @@ Report options (audit an existing palette for just-noticeable-difference issues)
   -t, --threshold <num>    JND threshold; pairs below it are flagged (default 25).
       --cvd <type:sev>     Add a CVD simulation, e.g. deuteranomaly:0.5 (repeatable).
       --palette-space <s>  Format reported colors in this space instead of hex.
+      --pairs              Include every pair in JSON output, not just issues.
   -f, --format <type>      Output format: text (default), json.
   -o, --output <path>      Write the report to a file instead of stdout.
       --quiet              Suppress the "wrote output" message.
@@ -181,6 +176,7 @@ const parseReportOptions = (args) => {
         jndThreshold: 25,
         cvdSimulations: [],
         colors: [],
+        includePairs: false,
     };
 
     const nextValue = (args, i, name) => {
@@ -221,6 +217,9 @@ const parseReportOptions = (args) => {
             case '--cvd':
                 options.cvdSimulations.push(parseCvdSimulation(nextValue(args, i, '--cvd')));
                 i += 1;
+                break;
+            case '--pairs':
+                options.includePairs = true;
                 break;
             case '--palette-space':
                 options.paletteSpace = nextValue(args, i, '--palette-space');
@@ -280,6 +279,7 @@ const reportCommand = (args) => {
         jndThreshold: options.jndThreshold,
         cvdSimulations: options.cvdSimulations,
         paletteSpace: options.paletteSpace,
+        includePairs: options.includePairs,
     });
 
     const output = renderReport(options.format, report, {

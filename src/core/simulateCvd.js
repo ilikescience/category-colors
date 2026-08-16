@@ -2,12 +2,8 @@
 // Uses Culori's built-in deficiency filters based on Machado et al. (2009)
 // "A Physiologically-based Model for Simulation of Color Vision Deficiency"
 
-const { createColor } = require('../utils/paletteColor');
-const {
-    filterDeficiencyProt,
-    filterDeficiencyDeuter,
-    filterDeficiencyTrit,
-} = require('culori');
+import { createColor } from '../utils/paletteColor.js';
+import { filterDeficiencyProt, filterDeficiencyDeuter, filterDeficiencyTrit, } from 'culori';
 
 const getCvdFilter = (cvdType, severity) => {
     if (cvdType === "Normal") {
@@ -47,4 +43,4 @@ const simulateCvd = (state, cvdType, severity) => {
     return { ...state, colors: cvdColors };
 }
 
-module.exports = simulateCvd;
+export default simulateCvd;

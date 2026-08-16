@@ -1,4 +1,4 @@
-const culori = require('culori');
+import * as culori from 'culori';
 
 const { converter, formatHex, useMode, parse, getMode } = culori;
 
@@ -116,9 +116,4 @@ const createColor = (input, coords) => {
     return colorObj;
 };
 
-module.exports = {
-    createColor,
-    getChannels,
-    getChannelWrap,
-    toModeObject,
-};
+export { createColor, getChannels, getChannelWrap, toModeObject };

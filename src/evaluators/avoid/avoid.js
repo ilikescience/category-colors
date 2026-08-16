@@ -5,9 +5,9 @@
 // unlike similarity targets they are deliberately not coerced into the
 // working color space, since the point is distance from the exact color.
 
-const { deltaE } = require('../../utils/deltaE');
-const { resolveDistanceOptions, getMaxDistance } = require('../../utils/distanceOptions');
-const { createColor } = require('../../utils/paletteColor');
+import { deltaE } from '../../utils/deltaE.js';
+import { resolveDistanceOptions, getMaxDistance } from '../../utils/distanceOptions.js';
+import { createColor } from '../../utils/paletteColor.js';
 
 // Radius within which a palette color is penalized, as a fraction of the
 // maximum distance for the configured metric.
@@ -64,4 +64,4 @@ const evaluateAvoid = (state, config, descriptor = {}) => {
     return cost / colors.length;
 };
 
-module.exports = evaluateAvoid;
+export default evaluateAvoid;

@@ -1,80 +1,172 @@
-## How to pick the least wrong colors
+# category-colors
 
-This is the code to go along with the essay on my website, [How to pick the least wrong colors](https://matthewstrom.com/writing/how-to-pick-the-least-wrong-colors/).
+Generate color palettes for categorical data visualization using simulated annealing.
 
-It is a very unskilled implementation of the simulated annealing algorithm in service of creating color palettes for categorical data visualization.
+Categorical palettes have to satisfy several goals at once: every pair of colors
+must be tellable apart, they must stay tellable apart for viewers with color
+vision deficiency, they may need to hit a contrast ratio against the chart
+background, and they should look like they belong together. These goals
+conflict, so there is no palette that maximizes all of them. This library treats
+palette design as an optimization problem instead: you weight the goals you care
+about, and simulated annealing searches for the least-wrong compromise.
 
-It comes with an MIT License - please use it carefully and respectfully.
+This is the code behind the essay
+[How to pick the least wrong colors](https://matthewstrom.com/writing/how-to-pick-the-least-wrong-colors/).
 
-### Running
-
-Use the bundled CLI to generate colors without editing project files:
-
-```bash
-npx categorycolors run
-# or, from this repository clone:
-node ./bin/category-colors.js run
-```
-
-Helpful flags:
-- `--config path/to/config.js` – customize the annealing config (object export or factory).
-- `--state path/to/state.js` – seed the initial palette (array export or override object).
-- `--format text|json|palette` – control the output representation.
-- `--output result.json` – write the result to a file; otherwise prints to stdout.
-- `--quiet` – suppress progress logging during annealing.
-
-Audit an existing palette for just-noticeable-difference issues without writing any code:
+## Install
 
 ```bash
-npx categorycolors report '#ff0000' '#f10000' '#00ff00' --threshold 20
-# or load the palette from a file (array export or state object):
-node ./bin/category-colors.js report --palette ./palette.js --cvd deuteranomaly:0.5
+npm install category-colors
 ```
 
-Report flags:
-- `[colors...]` – hex colors to audit when `--palette` is not used.
-- `--palette path/to/palette.js` – load colors from a JS/JSON module (array or state object).
-- `--method <name>` / `--space <name>` – distance method (default `ciede2000`) and space (default `lab65`).
-- `--threshold <num>` – flag pairs whose ΔE falls below this value (default `25`).
-- `--cvd <type:severity>` – add a CVD simulation such as `protanomaly:1` (repeatable).
-- `--palette-space <space>` – format reported colors in this space instead of hex.
-- `--format text|json` – control the output representation.
-- `--output result.json` – write the report to a file instead of stdout.
+Requires Node.js 22.12 or newer. The package is ESM; on Node 22.12+ `require()`
+loads it as well, so CommonJS callers work without a build step.
 
-The legacy `node index.js` command still runs the default optimization if you prefer not to use the CLI.
-
-### Testing
-
-Run `npm test` to execute the lightweight sanity checks that guard the core modules. The tests rely solely on the Node.js built-in test runner, so no extra dependencies are required.
-
-### Modifying
-
-The code is organized to separate algorithm building blocks from evaluation logic:
-- `src/core/` contains the simulated annealing workflow (state preparation, neighbor generation, temperature finding, order optimization).
-- `src/evaluators/` houses individual evaluation functions that can be mixed and matched in the configuration.
-- `src/config/` provides the default config (`defaultConfig.js`) and starting palette (`defaultState.js`).
-- `src/utils/` contains shared math and color helpers.
-- `src/data/` includes bundled palettes you can swap in for experiments.
-- `src/report/jnd.js` exposes a helper for generating just-noticeable-difference reports (see below).
-
-To tweak the algorithm, start by copying and editing the factories in `src/config/`:
+## Quick start
 
 ```js
-const { createDefaultConfig } = require('./src/config/defaultConfig');
-const { createDefaultState } = require('./src/config/defaultState');
+import {
+  createDefaultConfig,
+  createDefaultState,
+  prepareInitialState,
+  runWithOrderOptimization,
+} from 'category-colors';
+
+const config = createDefaultConfig();
+const initialState = prepareInitialState(createDefaultState(), config);
+const finalState = runWithOrderOptimization(initialState, config);
+
+console.log(finalState.colors.map(String));
+// [ '#3b4755', '#cb5f8b', '#d9e5e8', ... ]
 ```
 
-There are a number of variables you can modify inside the config factory to adjust the results:
+`prepareInitialState` fills the palette out to `config.colorCount`, clamps every
+color into the working space, and picks a starting temperature by sampling
+random mutations. `runWithOrderOptimization` anneals and then reorders the
+result so neighboring swatches sit at even perceptual distances; use
+`runSimulatedAnnealing` to skip the reordering.
 
-`similarityTarget` is an array of colors that culori can parse (hex strings, `{mode:'rgb',...}`, etc.) - the algorithm will attempt to find colors that are similar to these.
+## Command line
 
-`config.evalFunctions` is an array of `{ function, weight, cvd? }` descriptors. Add, remove, or reorder entries to emphasise different evaluation criteria:
-- Increase the weight on `evaluators.energy` to push colors further apart.
-- Increase the weight on `evaluators.range` to keep distances between colors more uniform.
-- Add additional `evaluators.jnd` entries with different `cvd` settings to cover more simulated deficiencies.
-- Swap `evaluators.similarity` or change `config.similarityTarget` to chase a different reference palette.
+```bash
+npx category-colors run
+npx category-colors report '#ff0000' '#f10000' '#00ff00' --threshold 20
+```
 
-`config.colorDistance` lets you choose the distance method (see the [Culori distance documentation](https://culorijs.org/docs/color-difference/)) and optional analysis space (default `'lab65'`) used throughout optimisation and reporting. For example:
+Run options:
+
+| Flag | Meaning |
+| --- | --- |
+| `-c, --config <path>` | Module exporting config overrides or a factory |
+| `-s, --state <path>` | Module exporting a colors array or state overrides |
+| `-f, --format <type>` | `text` (default), `json`, or `palette` |
+| `-o, --output <path>` | Write to a file instead of stdout |
+| `--no-order` | Skip post-annealing order optimization |
+| `--quiet` | Suppress progress logging |
+
+Report options audit an existing palette for pairs that fall below a
+just-noticeable-difference threshold:
+
+| Flag | Meaning |
+| --- | --- |
+| `[colors...]` | Hex colors to audit when `--palette` is not used |
+| `-p, --palette <path>` | Module exporting a colors array or state object |
+| `-m, --method <name>` | Distance method (default `ciede2000`) |
+| `--space <name>` | Distance space (default `lab65`) |
+| `-t, --threshold <num>` | Flag pairs below this ΔE (default `25`) |
+| `--cvd <type:severity>` | Add a CVD simulation, e.g. `deuteranomaly:0.5`. Repeatable |
+| `--palette-space <space>` | Report colors in this space instead of hex |
+| `-f, --format <type>` | `text` (default) or `json` |
+| `-o, --output <path>` | Write to a file instead of stdout |
+
+Config and state files may be ESM or CommonJS. They are loaded with `require()`,
+so an ESM file using top-level await will not load.
+
+## Entry points
+
+| Import | Contents |
+| --- | --- |
+| `category-colors` | The optimizer, evaluators, config factories, color utilities, and the JND report |
+| `category-colors/report` | `reportJndIssues` on its own |
+| `category-colors/evaluators` | The evaluators, without going through the main barrel |
+| `category-colors/evaluators/saliency` | The saliency evaluator alone, for loading its lookup table on demand |
+| `category-colors/cli` | `generatePalette` and the CLI's formatting helpers |
+
+The main entry is browser-safe — nothing reachable from it imports a Node
+builtin — and a test enforces that. The CLI helpers, which read files from disk,
+are only reachable through `category-colors/cli`.
+
+### Bundle size
+
+The package is side-effect-free apart from one module, and says so in
+`package.json`, so a bundler can drop whatever you do not import. The thing
+worth knowing is that `saliency` carries a ~150 kB lookup table:
+
+```js
+import { energy, jnd } from 'category-colors';   // table dropped
+import { evaluators } from 'category-colors';    // table included
+```
+
+Naming evaluators individually lets them be tree-shaken. Referencing the
+`evaluators` object does not — a bundler cannot know which keys you index, so
+it has to keep all of them. If you need the object for dynamic lookup but not
+saliency, build your own from named imports. To defer the table instead of
+dropping it, `await import('category-colors/evaluators/saliency')` keeps it out
+of the initial chunk until something selects it.
+
+## API
+
+### Optimization
+
+- `prepareInitialState(state, config)` — fill, clamp, score, and choose a starting temperature.
+- `runSimulatedAnnealing(state, config)` — anneal until the cutoff temperature or iteration cap.
+- `runWithOrderOptimization(state, config)` — anneal, then reorder for even adjacent distances.
+- `cost(state, config)` — the weighted average of every evaluator's score.
+- `costBreakdown(state, config)` — the same number itemized per evaluator, in `config.evalFunctions` order. Each entry is `{ weight, cost, weightedCost }`, and the `weightedCost` values sum to `cost(state, config)`.
+- `simulateCvd(state, type, severity)` — a copy of the state with every color passed through a CVD filter.
+
+### Configuration and data
+
+- `createDefaultConfig()` / `createDefaultState()` — starting points to spread and edit.
+- `evaluators` — every evaluator, as an object, for building `evalFunctions` dynamically. Also exported individually (`energy`, `range`, `jnd`, `similarity`, `avoid`, `contrast`, `saliency`).
+- `palettes` — established categorical palettes (`observable10`, `d3category10`, `carbon`, `tableau10`, `tableau20`, `colorBrewer3_10`) for comparison or as seeds.
+
+### Color utilities
+
+- `deltaE(a, b, options)` — perceptual distance between two colors.
+- `createColor(input, coords?)` — normalize a hex string, culori object, or `{ color, lockedChannels }` spec into the color objects the optimizer uses.
+- `getChannels(mode)` — the channel names of a color mode, in order.
+
+### Recording a loss curve
+
+Set `recordHistory` to collect a `[iteration, cost]` trace on the returned
+state, which is what you need to plot convergence:
+
+```js
+const config = { ...createDefaultConfig(), recordHistory: true, historyInterval: 100 };
+const finalState = runWithOrderOptimization(prepareInitialState(state, config), config);
+
+finalState.costHistory; // [[0, 4.21], [100, 3.88], ..., [7412, 1.03]]
+```
+
+`historyInterval` defaults to `maxIterations / 250`. The first and last
+iterations are always sampled, and order optimization appends one final point.
+
+## Configuration
+
+`config.evalFunctions` is an array of `{ function, weight, ...options }`
+descriptors. Weights are relative — they are normalized against their sum, not
+required to add to 1. Evaluator-specific options live on the descriptor rather
+than on the top-level config, so the same evaluator can appear several times
+with different settings:
+
+- Raise the weight on `energy` to push colors further apart.
+- Raise the weight on `range` to make the distances between colors more uniform.
+- Add more `jnd` entries with different `cvd` settings to cover more deficiencies.
+- Swap `similarity` or change `config.similarityTarget` to chase a reference palette.
+
+`config.colorDistance` chooses the distance method and the space it is measured
+in (see the [culori distance docs](https://culorijs.org/docs/color-difference/)):
 
 ```js
 const config = createDefaultConfig();
@@ -82,15 +174,13 @@ const config = createDefaultConfig();
 config.colorDistance = {
   method: 'cmc',
   space: 'oklab',
-  cmc: { l: 2, c: 1 }, // optional CMC parameters
+  cmc: { l: 2, c: 1 },
 };
-
-// pass `config` into prepareInitialState or reportJndIssues(...)
 ```
 
-For the most up-to-date list of supported color spaces and distance methods, refer to the [official Culori documentation](https://culorijs.org/docs/).
-
-`config.colorSpace` controls the working space for initialization and mutation. Each entry in `ranges` corresponds to a channel in the chosen mode. Cyclic channels (e.g. hue) are automatically detected from the color mode definition:
+`config.colorSpace` controls the working space for initialization and mutation.
+Each entry in `ranges` corresponds to a channel of the chosen mode, and cyclic
+channels such as hue are detected automatically from the mode definition:
 
 ```js
 config.colorSpace = {
@@ -103,224 +193,124 @@ config.colorSpace = {
 };
 ```
 
-You can optionally override the automatic wrap detection by providing a `wrap` array, but this is rarely necessary.
+The annealing schedule itself:
 
-The annealing schedule itself is controlled by a few more values:
+- The starting temperature is derived by sampling random mutations.
+  `initialTemperatureSamples` sets how many, and `initialAcceptanceRate` sets
+  the probability of accepting a cost-increasing move at the start of the run.
+- `coolingRate` multiplies the temperature each iteration. Closer to 1 cools
+  more slowly and runs longer.
+- `cutoff` is the temperature at which the run stops.
+- `maxIterations` caps the run regardless of temperature.
 
-- The starting temperature is calculated automatically by sampling random mutations from the initial state. `initialTemperatureSamples` sets how many mutations to sample, and `initialAcceptanceRate` sets the desired probability of accepting a cost-increasing move at the start of the run.
-- `coolingRate` is the multiplier applied to the temperature at each iteration. A rate closer to 1 cools more slowly and results in more iterations.
-- `cutoff` is the temperature at which the algorithm stops optimizing and returns results. A lower cutoff means more late-stage iterations where improvements are minimal.
-- `maxIterations` caps the total number of iterations regardless of temperature.
+## Channel locking
 
-### Channel Locking
-
-You can lock specific color channels during optimization to preserve certain aspects of colors while allowing others to vary. This is useful for maintaining brand colors' hue while optimizing saturation and lightness for accessibility.
-
-To lock channels, provide colors as objects with a `lockedChannels` array:
+Lock channels to preserve some aspect of a color while letting the rest vary —
+holding a brand hue fixed while saturation and lightness move to meet a contrast
+requirement, for instance. Pass colors as objects with a `lockedChannels` array:
 
 ```js
 const colors = [
-    { color: '#ff0000', lockedChannels: [0] },     // Lock hue (channel 0 in okhsl)
-    { color: '#00ff00', lockedChannels: [0, 1] },  // Lock hue and saturation
-    '#0000ff',                                     // Fully mutable
+  { color: '#ff0000', lockedChannels: [0] },    // lock hue
+  { color: '#00ff00', lockedChannels: [0, 1] }, // lock hue and saturation
+  '#0000ff',                                    // fully mutable
 ];
-
-const { finalState } = generatePalette({ state: colors, config });
 ```
 
-Channel indices correspond to the color space mode:
-- **okhsl/hsl**: `[0]=hue`, `[1]=saturation`, `[2]=lightness`
-- **oklab/lab**: `[0]=lightness`, `[1]=a`, `[2]=b`
-- **rgb**: `[0]=red`, `[1]=green`, `[2]=blue`
+Channel indices follow the color space mode: `okhsl`/`hsl` is
+`[0]=hue, [1]=saturation, [2]=lightness`; `oklab`/`lab` is `[0]=lightness,
+[1]=a, [2]=b`; `rgb` is `[0]=red, [1]=green, [2]=blue`. Colors can also carry
+`fixedColor` to exclude them from mutation entirely, or `fixedOrder` to pin them
+in place during order optimization.
 
-See [examples/channelLocking.js](examples/channelLocking.js) for complete examples.
+See [examples/channelLocking.js](examples/channelLocking.js).
 
-### WCAG Contrast Optimization
+## WCAG contrast
 
-A new `contrast` evaluator optimizes palettes for WCAG accessibility contrast requirements. This is essential for ensuring colors meet minimum contrast ratios against backgrounds.
-
-Add the evaluator to your config with parameters specified in the evalFunction descriptor:
+The `contrast` evaluator applies exponential penalties when colors fall below a
+required ratio against a background, using culori's `wcagContrast()`:
 
 ```js
-const evaluators = require('./src/evaluators');
+import { evaluators } from 'category-colors';
 
 const config = {
-    evalFunctions: [
-        { function: evaluators.energy, weight: 0.2 },
-        {
-            function: evaluators.contrast,
-            weight: 0.8,
-            background: '#ffffff',  // Background color for contrast checks
-            ratio: 3,               // 3:1 for non-text, 4.5:1 for AA text, 7:1 for AAA
-            checkAdjacent: false,   // Optionally check contrast between adjacent colors
-        },
-    ],
+  evalFunctions: [
+    { function: evaluators.energy, weight: 0.2 },
+    {
+      function: evaluators.contrast,
+      weight: 0.8,
+      background: '#ffffff',
+      ratio: 3,              // 3:1 non-text, 4.5:1 AA text, 7:1 AAA
+      checkAdjacent: false,  // also check contrast between adjacent colors
+    },
+  ],
 };
 ```
 
-The evaluator uses Culori's built-in `wcagContrast()` function to calculate WCAG 2.1 contrast ratios. It applies exponential penalties when colors fall below the required ratio, encouraging the optimizer to find high-contrast solutions.
+Combined with channel locking, this pulls brand colors into compliance while
+keeping their hue. See [examples/wcagContrast.js](examples/wcagContrast.js).
 
-Combine with channel locking to optimize brand colors for accessibility:
+## Avoiding specific colors
+
+`avoid` is the inverse of `similarity`: it pushes the palette away from a set of
+colors. Use it to keep categorical colors clear of a background, a brand color,
+or semantic colors that shouldn't be confused with data.
 
 ```js
-const brandColors = [
-    { color: '#e74c3c', lockedChannels: [0] },  // Keep brand red hue
-    { color: '#3498db', lockedChannels: [0] },  // Keep brand blue hue
-];
-
 const config = {
-    evalFunctions: [{
-        function: evaluators.contrast,
-        weight: 1.0,
-        background: '#ffffff',
-        ratio: 4.5,  // WCAG AA text requirement
-    }],
-};
-
-const { finalState } = generatePalette({ state: brandColors, config });
-// Results in brand-aligned colors that meet AA contrast standards
-```
-
-See [examples/wcagContrast.js](examples/wcagContrast.js) for complete examples including dark mode and adjacent color checking.
-
-### Avoiding Specific Colors
-
-The `avoid` evaluator is the inverse of `similarity`: it pushes the palette away from a set of colors instead of pulling it toward them. Use it to keep generated colors clear of a brand color, a background, or semantic colors (error red, success green) that categorical colors shouldn't be confused with.
-
-Colors and radius are specified on the evalFunction descriptor:
-
-```js
-const evaluators = require('./src/evaluators');
-
-const config = {
-    evalFunctions: [
-        { function: evaluators.energy, weight: 0.2 },
-        {
-            function: evaluators.avoid,
-            weight: 0.8,
-            colors: ['#e74c3c', '#2ecc71'],  // Colors to steer away from
-            radius: 0.15,                    // Penalty radius, as a fraction of the
-                                             // metric's maximum distance (default 0.15)
-        },
-    ],
+  evalFunctions: [
+    { function: evaluators.energy, weight: 0.2 },
+    {
+      function: evaluators.avoid,
+      weight: 0.8,
+      colors: ['#e74c3c', '#2ecc71'],
+      radius: 0.15, // fraction of the metric's maximum distance
+    },
+  ],
 };
 ```
 
-Each palette color is charged for how far it has intruded into the radius around its nearest avoid color — a linear ramp from 1 (exact match) to 0 (at the radius edge) — and costs nothing once outside every radius. Unlike similarity targets, avoid colors are measured exactly as given rather than coerced into the working color space, since the point is distance from the actual color. Multiple `avoid` entries with different color sets, radii, and weights can be combined.
+Each color is charged for how far it has intruded into the radius around its
+nearest avoid color — a linear ramp from 1 at an exact match to 0 at the radius
+edge — and costs nothing outside every radius. Unlike similarity targets, avoid
+colors are measured exactly as given rather than coerced into the working space,
+since the point is distance from the actual color.
 
-### Creating Custom Evaluators
+## Custom evaluators
 
-The codebase follows a standardized pattern for evaluators, making it easy to create your own.
-
-#### Evaluator Function Signature
-
-All evaluators follow this signature:
-
-```js
-const myEvaluator = (state, config, descriptor = {}) => {
-    // Extract your parameters from descriptor
-    const { myParam = defaultValue } = descriptor;
-
-    // Calculate cost based on state.colors
-    let cost = 0;
-    // ... your logic here
-
-    // Return normalized cost
-    return cost;
-};
-```
-
-**Parameters:**
-- **state**: Object containing `{ colors, temperature, iterations, cost }`
-- **config**: Global configuration object
-- **descriptor**: The evalFunction entry from config, containing evaluator-specific parameters
-
-#### Pattern to Follow
-
-1. **Extract parameters from descriptor** (not from top-level config):
-   ```js
-   const { background = '#ffffff', ratio = 3 } = descriptor;
-   ```
-
-2. **Calculate cost** based on `state.colors`:
-   ```js
-   state.colors.forEach((color) => {
-       // Calculate and accumulate cost
-   });
-   ```
-
-3. **Normalize cost** to keep contribution consistent:
-   ```js
-   return cost / state.colors.length; // or numPairs, numChecks, etc.
-   ```
-
-4. **Use exponential penalties** for smooth optimization:
-   ```js
-   if (value < threshold) {
-       cost += Math.pow(threshold / value, 4); // Steep penalty
-   }
-   ```
-
-#### Example: Custom "Warm Colors" Evaluator
+An evaluator takes `(state, config, descriptor)` and returns a cost. Read your
+parameters off the `descriptor` — the `evalFunctions` entry itself — so the same
+function can be used several times with different settings, and normalize the
+result so its contribution stays comparable to the others:
 
 ```js
-const { converter } = require('culori');
+import { converter } from 'culori';
 
 const evaluateWarmness = (state, config, descriptor = {}) => {
-    const { targetHue = 30, tolerance = 60 } = descriptor;
-    const toHsl = converter('hsl');
+  const { targetHue = 30, tolerance = 60 } = descriptor;
+  const toHsl = converter('hsl');
 
-    let cost = 0;
+  const cost = state.colors.reduce((sum, color) => {
+    const hueDiff = Math.abs(toHsl(color).h - targetHue);
+    return hueDiff > tolerance ? sum + ((hueDiff - tolerance) / 180) ** 2 : sum;
+  }, 0);
 
-    state.colors.forEach((color) => {
-        const hsl = toHsl(color);
-        const hueDiff = Math.abs(hsl.h - targetHue);
-
-        // Penalize colors outside tolerance
-        if (hueDiff > tolerance) {
-            cost += Math.pow((hueDiff - tolerance) / 180, 2);
-        }
-    });
-
-    return cost / state.colors.length;
+  return cost / state.colors.length;
 };
 
-module.exports = evaluateWarmness;
+export default evaluateWarmness;
 ```
 
-**Usage:**
+Exponential penalties (`(threshold / value) ** 4`) work better than linear ones
+for hard requirements: they stay near zero while satisfied and rise steeply once
+violated, which gives the annealer a clear gradient to follow.
+
+## JND reporting
 
 ```js
-const myEvaluator = require('./myEvaluator');
+import { reportJndIssues } from 'category-colors/report';
 
-const config = {
-    evalFunctions: [
-        { function: evaluators.energy, weight: 0.3 },
-        {
-            function: myEvaluator,
-            weight: 0.7,
-            targetHue: 30,    // Your custom parameters
-            tolerance: 60,
-        },
-    ],
-};
-```
-
-**Benefits:**
-- **Composable**: Multiple instances with different parameters
-- **Reusable**: Parameters don't pollute global config
-- **Consistent**: Follows same pattern as CVD parameters in JND evaluator
-- **Type-safe**: Parameters are co-located with the function reference
-
-### JND Reporting
-
-You can audit an existing palette with the built-in report helper:
-
-```js
-const { reports } = require('./src');
-
-const palette = ['#ff0000', '#f20000', '#00ff00', '#0000ff'];
-const result = reports.reportJndIssues(palette, {
+const result = reportJndIssues(['#ff0000', '#f20000', '#00ff00', '#0000ff'], {
   distanceMethod: 'ciede2000',
   distanceSpace: 'lab65',
   jndThreshold: 25,
@@ -329,8 +319,29 @@ const result = reports.reportJndIssues(palette, {
     { type: 'deuteranomaly', severity: 0.5 },
   ],
 });
-
-console.log(JSON.stringify(result, null, 2));
 ```
 
-The report lists all pairs that fall below the JND threshold in the base palette and in any simulated color-vision deficiency modes you request.
+The result holds one test per condition — the base palette plus each requested
+simulation. Every test carries `pairs` (all pairs, with distances) and `issues`
+(the subset below the threshold, sharing the same objects). `totalIssues` sums
+issue counts across tests, so a pair that fails under two simulations counts
+twice.
+
+`pairs` is O(n²) per test and dominates the serialized size of a report; pass
+`includePairs: false` when you only need the failures. The CLI's `report`
+command omits it by default and takes `--pairs` to include it.
+
+## Development
+
+```bash
+npm test
+```
+
+Tests use the Node.js built-in runner; there are no dev dependencies. Beyond the
+unit tests, the suite checks that every `exports` subpath resolves to a file
+that ships, and that nothing reachable from the main entry imports a Node
+builtin.
+
+## License
+
+MIT

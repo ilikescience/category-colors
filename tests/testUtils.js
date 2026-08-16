@@ -27,6 +27,4 @@ const withMockedRandom = (values, fn) => {
     }
 };
 
-module.exports = {
-    withMockedRandom,
-};
+export { withMockedRandom };

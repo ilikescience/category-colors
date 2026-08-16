@@ -1,10 +1,10 @@
 // evaluates the similarity of two sets of colors.
 // uses the Munkres algorithm to find the minimum weight assignment of the distance matrix
 
-const { minWeightAssign } = require('munkres-algorithm');
-const { deltaE } = require('../../utils/deltaE');
-const { resolveDistanceOptions, getMaxDistance } = require('../../utils/distanceOptions');
-const { sanitizePalette } = require('../../utils/colorSpaceTools');
+import { minWeightAssign } from 'munkres-algorithm';
+import { deltaE } from '../../utils/deltaE.js';
+import { resolveDistanceOptions, getMaxDistance } from '../../utils/distanceOptions.js';
+import { sanitizePalette } from '../../utils/colorSpaceTools.js';
 
 // Sanitized targets are cached per config.similarityTarget array so the
 // (potentially warning-emitting) sanitization runs once per palette, not once
@@ -76,4 +76,4 @@ const evaluateSimilarity = (state, config) => {
     return distanceSum / colors.length;
 };
 
-module.exports = evaluateSimilarity;
+export default evaluateSimilarity;

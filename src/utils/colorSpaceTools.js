@@ -1,6 +1,6 @@
-const culori = require('culori');
-const { randomVector } = require('./utils');
-const { createColor, getChannelWrap, getChannels, toModeObject } = require('./paletteColor');
+import * as culori from 'culori';
+import { randomVector } from './utils.js';
+import { createColor, getChannelWrap, getChannels, toModeObject } from './paletteColor.js';
 
 const { random, clampGamut, inGamut, converter } = culori;
 
@@ -227,9 +227,4 @@ const sanitizePalette = (colors, config, distanceOptions, contextPrefix = 'color
         });
     });
 
-module.exports = {
-    ensureColorInSpace,
-    randomColorInSpace,
-    mutateColorInSpace,
-    sanitizePalette,
-};
+export { ensureColorInSpace, randomColorInSpace, mutateColorInSpace, sanitizePalette };

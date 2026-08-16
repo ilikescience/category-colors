@@ -1,16 +1,76 @@
 {
-  "name": "categorycolors",
+  "name": "category-colors",
   "version": "1.0.0",
-  "description": "Generate color palettes for categorical data visualization using simulated annealing",
-  "main": "index.js",
-  "bin": {
-    "category-colors": "./bin/category-colors.js"
+  "description": "Generate perceptually distinguishable color palettes for categorical data visualization using simulated annealing",
+  "keywords": [
+    "color",
+    "palette",
+    "colorblind",
+    "accessibility",
+    "data-visualization",
+    "categorical",
+    "simulated-annealing",
+    "wcag",
+    "cvd",
+    "culori"
+  ],
+  "homepage": "https://github.com/ilikescience/category-colors#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilikescience/category-colors.git"
   },
-  "scripts": {
-    "test": "node --test"
+  "bugs": {
+    "url": "https://github.com/ilikescience/category-colors/issues"
   },
   "author": "Matt Ström-Awn <matt@mu.design>",
   "license": "MIT",
+  "type": "module",
+  "sideEffects": [
+    "./src/utils/paletteColor.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./report": {
+      "types": "./types/report.d.ts",
+      "default": "./src/report/jnd.js"
+    },
+    "./evaluators": {
+      "types": "./types/evaluators.d.ts",
+      "default": "./src/evaluators/index.js"
+    },
+    "./evaluators/saliency": {
+      "types": "./types/saliency.d.ts",
+      "default": "./src/evaluators/saliency/saliency.js"
+    },
+    "./cli": {
+      "types": "./types/cli.d.ts",
+      "default": "./src/cli/generatePalette.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./index.d.ts",
+  "bin": {
+    "category-colors": "./bin/category-colors.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "index.d.ts",
+    "types",
+    "readme.md",
+    "license.md"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "test": "node --test",
+    "bench": "node bench/run.js",
+    "prepublishOnly": "node --test"
+  },
   "dependencies": {
     "culori": "^4.0.2",
     "munkres-algorithm": "^1.0.2"

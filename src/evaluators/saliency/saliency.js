@@ -1,27 +1,18 @@
-const saliencies = require('./saliencies.json');
-const { converter } = require('culori');
-const { getChannels } = require('../../utils/paletteColor');
+import { converter } from 'culori';
+import { getChannels } from '../../utils/paletteColor.js';
+import saliencies from './saliencies.js';
 
 const toLab = converter('lab65');
 const labChannels = getChannels('lab65');
 
-// saliency data is in lab-d65, rounded to the nearest 5
-let saliencyByLab = null;
-const getSaliencyMap = () => {
-    if (!saliencyByLab) {
-        saliencyByLab = new Map(
-            saliencies.map(({ colorValue, saliency }) => [colorValue.join(','), saliency])
-        );
-    }
-    return saliencyByLab;
-};
-
+// The dataset is sampled on a 5-unit lab65 grid, so a lookup rounds each
+// channel to the nearest 5 to find its cell.
 const saliency = (color) => {
     const converted = toLab(color);
     const key = labChannels
         .map((channel) => Math.round((converted[channel] ?? 0) / 5) * 5)
         .join(',');
-    return getSaliencyMap().get(key) ?? 0;
+    return saliencies[key] ?? 0;
 };
 
 const evaluateSaliency = (state) => {
@@ -32,4 +23,5 @@ const evaluateSaliency = (state) => {
     return colors.reduce((sum, color) => sum + saliency(color), 0) / colors.length;
 };
 
-module.exports = evaluateSaliency;
+export { saliency };
+export default evaluateSaliency;

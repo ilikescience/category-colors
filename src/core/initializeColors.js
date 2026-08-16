@@ -1,9 +1,5 @@
-const { resolveDistanceOptions } = require('../utils/distanceOptions');
-const {
-    ensureColorInSpace,
-    randomColorInSpace,
-    sanitizePalette,
-} = require('../utils/colorSpaceTools');
+import { resolveDistanceOptions } from '../utils/distanceOptions.js';
+import { ensureColorInSpace, randomColorInSpace, sanitizePalette, } from '../utils/colorSpaceTools.js';
 
 const initializeColors = (state, config) => {
     const distanceOptions = resolveDistanceOptions(config);
@@ -33,6 +29,4 @@ const initializeColors = (state, config) => {
     return initializedState;
 };
 
-module.exports = {
-    initializeColors,
-};
+export { initializeColors };

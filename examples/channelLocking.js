@@ -6,8 +6,8 @@
  * while allowing others (like saturation and lightness) to vary.
  */
 
-const { cli, evaluators } = require('../index');
-const { generatePalette } = cli;
+import { evaluators } from '../src/index.js';
+import { generatePalette } from '../src/cli/generatePalette.js';
 
 // Example 1: Lock hue while allowing saturation and lightness to vary
 console.log('\n=== Example 1: Lock Hue ===\n');

@@ -1,21 +1,21 @@
-const evaluators = require('../evaluators');
+import { energy, range, jnd, similarity } from '../evaluators/index.js';
 
 const createDefaultConfig = () => ({
     evalFunctions: [
-        { function: evaluators.energy, weight: 0.15 },
-        { function: evaluators.range, weight: 0.15 },
-        { function: evaluators.jnd, weight: 0.15 },
+        { function: energy, weight: 0.15 },
+        { function: range, weight: 0.15 },
+        { function: jnd, weight: 0.15 },
         {
-            function: evaluators.jnd,
+            function: jnd,
             weight: 0.15,
             cvd: { type: 'protanomaly', severity: 0.5 },
         },
         {
-            function: evaluators.jnd,
+            function: jnd,
             weight: 0.5,
             cvd: { type: 'deuteranomaly', severity: 0.5 },
         },
-        { function: evaluators.similarity, weight: 1 },
+        { function: similarity, weight: 1 },
     ],
     coolingRate: 0.999,
     cutoff: 0.0001,
@@ -46,6 +46,4 @@ const createDefaultConfig = () => ({
     colorCount: 8
 });
 
-module.exports = {
-    createDefaultConfig,
-};
+export { createDefaultConfig };

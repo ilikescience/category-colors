@@ -1,10 +1,4 @@
-const {
-    differenceCiede2000,
-    differenceCie76,
-    differenceCie94,
-    differenceCmc,
-    differenceEuclidean,
-} = require('culori');
+import { differenceCiede2000, differenceCie76, differenceCie94, differenceCmc, differenceEuclidean, } from 'culori';
 
 const normalizeMethod = (method = 'ciede2000') => {
     const value = method.toLowerCase();
@@ -67,6 +61,4 @@ const deltaE = (colorA, colorB, options = {}) => {
     return diff(colorA, colorB);
 };
 
-module.exports = {
-    deltaE,
-};
+export { deltaE };

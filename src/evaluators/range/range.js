@@ -1,5 +1,5 @@
-const { deltaE } = require('../../utils/deltaE');
-const { resolveDistanceOptions } = require('../../utils/distanceOptions');
+import { deltaE } from '../../utils/deltaE.js';
+import { resolveDistanceOptions } from '../../utils/distanceOptions.js';
 
 const calculateUniformityMetric = (arr) => {
     if (arr.length <= 1) {
@@ -35,4 +35,4 @@ const evaluateRange = (state, config) => {
     return 1 - calculateUniformityMetric(distances);
 };
 
-module.exports = evaluateRange;
+export default evaluateRange;

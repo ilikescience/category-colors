@@ -1,7 +1,7 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { runWithOrderOptimization } = require('../src/core/annealing');
-const { createColor } = require('../src/utils/paletteColor');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { runWithOrderOptimization } from '../src/core/annealing.js';
+import { createColor } from '../src/utils/paletteColor.js';
 
 // Verifies the orchestration logic without relying on the random walk by
 // configuring the state so the simulated annealing loop terminates immediately.

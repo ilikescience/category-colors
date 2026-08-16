@@ -1,8 +1,8 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { mutateColorInSpace } = require('../src/utils/colorSpaceTools');
-const { resolveDistanceOptions } = require('../src/utils/distanceOptions');
-const { createColor } = require('../src/utils/paletteColor');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mutateColorInSpace } from '../src/utils/colorSpaceTools.js';
+import { resolveDistanceOptions } from '../src/utils/distanceOptions.js';
+import { createColor } from '../src/utils/paletteColor.js';
 
 test('lockedChannels property is preserved on color objects', () => {
     const color = createColor({ color: '#ff0000', lockedChannels: [0, 1] });

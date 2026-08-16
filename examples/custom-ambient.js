@@ -4,8 +4,8 @@
  * Optimizing specific colors with locked hue channels and contrast requirements
  */
 
-const { cli, evaluators } = require('../index');
-const { generatePalette } = cli;
+import { evaluators } from '../src/index.js';
+import { generatePalette } from '../src/cli/generatePalette.js';
 
 console.log('\n=== Ambient Data Series Color Optimization ===\n');
 

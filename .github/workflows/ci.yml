@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22.12 is the floor declared in engines: the first release where
+        # require() can load an ESM package, which the CLI's config loader and
+        # any CommonJS consumer depend on.
+        node: ['22.12', '24']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npm test
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+      # Install the tarball the way a consumer would, so a broken exports map
+      # or a file missing from `files` fails here rather than after publish.
+      - run: |
+          npm pack --pack-destination /tmp
+          mkdir /tmp/consumer && cd /tmp/consumer
+          npm init -y && npm pkg set type=module
+          npm install /tmp/category-colors-*.tgz
+          node --input-type=module -e "
+            import { deltaE, evaluators } from 'category-colors'
+            import { reportJndIssues } from 'category-colors/report'
+            import saliency from 'category-colors/evaluators/saliency'
+            import { generatePalette } from 'category-colors/cli'
+            if (typeof deltaE !== 'function') throw new Error('missing deltaE')
+            if (typeof reportJndIssues !== 'function') throw new Error('missing report')
+            if (typeof saliency !== 'function') throw new Error('missing saliency')
+            if (typeof generatePalette !== 'function') throw new Error('missing cli')
+            if (typeof evaluators.saliency !== 'function') throw new Error('missing saliency in barrel')
+          "
+          node -e "require('category-colors')"
+          ./node_modules/.bin/category-colors report '#ff0000' '#00ff00'

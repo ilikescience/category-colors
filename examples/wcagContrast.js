@@ -5,8 +5,8 @@
  * to generate color palettes that meet accessibility requirements.
  */
 
-const { cli, evaluators } = require('../index');
-const { generatePalette } = cli;
+import { evaluators } from '../src/index.js';
+import { generatePalette } from '../src/cli/generatePalette.js';
 
 // Example 1: Optimize for 3:1 contrast with white background (WCAG non-text)
 console.log('\n=== Example 1: Non-text WCAG (3:1 contrast on white) ===\n');

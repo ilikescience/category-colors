@@ -1,5 +1,5 @@
-const culori = require('culori');
-const { createColor } = require('../../utils/paletteColor');
+import * as culori from 'culori';
+import { createColor } from '../../utils/paletteColor.js';
 
 const { wcagContrast } = culori;
 
@@ -52,4 +52,4 @@ const evaluateContrast = (state, config, descriptor = {}) => {
     return cost / numChecks;
 };
 
-module.exports = evaluateContrast;
+export default evaluateContrast;

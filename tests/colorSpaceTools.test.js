@@ -1,9 +1,9 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { mutateColorInSpace } = require('../src/utils/colorSpaceTools');
-const { resolveDistanceOptions } = require('../src/utils/distanceOptions');
-const { createColor } = require('../src/utils/paletteColor');
-const { withMockedRandom } = require('./testUtils');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mutateColorInSpace } from '../src/utils/colorSpaceTools.js';
+import { resolveDistanceOptions } from '../src/utils/distanceOptions.js';
+import { createColor } from '../src/utils/paletteColor.js';
+import { withMockedRandom } from './testUtils.js';
 
 const angularDifference = (a, b) => {
     const diff = ((a - b + 540) % 360) - 180;

@@ -23,6 +23,4 @@ const createDefaultState = () => {
     };
 };
 
-module.exports = {
-    createDefaultState,
-};
+export { createDefaultState };

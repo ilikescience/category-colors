@@ -1,22 +1,27 @@
-const { runSimulatedAnnealing, runWithOrderOptimization } = require('./core/annealing');
-const { prepareInitialState } = require('./core/state');
-const evaluators = require('./evaluators');
-const { createDefaultConfig } = require('./config/defaultConfig');
-const { createDefaultState } = require('./config/defaultState');
-const data = require('./data');
-const reports = require('./report/jnd');
+// Public entry point. Everything here is browser-safe — nothing in this graph
+// touches node:fs or node:path. The CLI helpers that do live behind the
+// 'category-colors/cli' subpath instead.
 
-module.exports = {
-    core: {
-        runSimulatedAnnealing,
-        runWithOrderOptimization,
-        prepareInitialState,
-    },
+export { prepareInitialState } from './core/state.js';
+export { runSimulatedAnnealing, runWithOrderOptimization } from './core/annealing.js';
+export { cost, costBreakdown } from './core/cost.js';
+export { default as simulateCvd } from './core/simulateCvd.js';
+
+export { createDefaultConfig } from './config/defaultConfig.js';
+export { createDefaultState } from './config/defaultState.js';
+
+export { deltaE } from './utils/deltaE.js';
+export { createColor, getChannels } from './utils/paletteColor.js';
+
+export {
     evaluators,
-    config: {
-        createDefaultConfig,
-        createDefaultState,
-    },
-    data,
-    reports,
-};
+    energy,
+    range,
+    similarity,
+    avoid,
+    jnd,
+    contrast,
+    saliency,
+} from './evaluators/index.js';
+export { palettes } from './data/index.js';
+export { reportJndIssues } from './report/jnd.js';

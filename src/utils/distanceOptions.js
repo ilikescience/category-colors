@@ -1,5 +1,5 @@
-const { createColor } = require('./paletteColor');
-const { deltaE } = require('./deltaE');
+import { createColor } from './paletteColor.js';
+import { deltaE } from './deltaE.js';
 
 const DEFAULT_REFERENCE_COLORS = [
     '#000000',
@@ -72,7 +72,4 @@ const getMaxDistance = (options = {}) => {
     return maxDistance;
 };
 
-module.exports = {
-    resolveDistanceOptions,
-    getMaxDistance,
-};
+export { resolveDistanceOptions, getMaxDistance };

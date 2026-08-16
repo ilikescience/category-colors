@@ -1,7 +1,7 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const evaluateContrast = require('../src/evaluators/contrast/contrast');
-const { createColor } = require('../src/utils/paletteColor');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import evaluateContrast from '../src/evaluators/contrast/contrast.js';
+import { createColor } from '../src/utils/paletteColor.js';
 
 test('evaluateContrast returns lower cost for high contrast colors', () => {
     const descriptor = {

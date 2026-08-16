@@ -91,15 +91,4 @@ const isInRange = (n, ranges) => {
     return false;
 }
 
-module.exports = {
-    clamp,
-    multiplyMatrices,
-    gaussianRandom,
-    randomVector,
-    degToRad,
-    radToDeg,
-    cylindricalToCartesian,
-    cartesianToCylindrical,
-    cartesianDistance,
-    isInRange
-};
+export { clamp, multiplyMatrices, gaussianRandom, randomVector, degToRad, radToDeg, cylindricalToCartesian, cartesianToCylindrical, cartesianDistance, isInRange };

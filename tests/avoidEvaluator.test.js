@@ -1,7 +1,7 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const evaluateAvoid = require('../src/evaluators/avoid/avoid');
-const { createColor } = require('../src/utils/paletteColor');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import evaluateAvoid from '../src/evaluators/avoid/avoid.js';
+import { createColor } from '../src/utils/paletteColor.js';
 
 test('evaluateAvoid penalizes colors near an avoid color', () => {
     const descriptor = { colors: ['#ff0000'], radius: 0.2 };

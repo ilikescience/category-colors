@@ -1,9 +1,10 @@
-const fs = require('fs');
-const path = require('path');
-const { runSimulatedAnnealing, runWithOrderOptimization } = require('../core/annealing');
-const { prepareInitialState } = require('../core/state');
-const { createDefaultConfig } = require('../config/defaultConfig');
-const { createDefaultState } = require('../config/defaultState');
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { runSimulatedAnnealing, runWithOrderOptimization } from '../core/annealing.js';
+import { prepareInitialState } from '../core/state.js';
+import { createDefaultConfig } from '../config/defaultConfig.js';
+import { createDefaultState } from '../config/defaultState.js';
 
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -21,6 +22,12 @@ const deepMerge = (target, source) => {
     return result;
 };
 
+// Config and state files are loaded synchronously so generatePalette can stay
+// synchronous. Node >= 22.12 lets require() load ESM as well as CJS, so this
+// accepts either; the one thing it cannot load is an ESM file using top-level
+// await, which require() rejects by design.
+const requireFile = createRequire(import.meta.url);
+
 const resolveModule = (inputPath) => {
     const absolutePath = path.isAbsolute(inputPath)
         ? inputPath
@@ -28,8 +35,7 @@ const resolveModule = (inputPath) => {
     if (!fs.existsSync(absolutePath)) {
         throw new Error(`Unable to locate file at ${absolutePath}`);
     }
-    // eslint-disable-next-line global-require, import/no-dynamic-require
-    let loaded = require(absolutePath);
+    let loaded = requireFile(absolutePath);
     if (loaded && typeof loaded === 'object' && 'default' in loaded) {
         loaded = loaded.default;
     }
@@ -164,12 +170,4 @@ const buildJsonSummary = (initialState, finalState) => ({
     costDifference: finalState.cost - initialState.cost,
 });
 
-module.exports = {
-    generatePalette,
-    formatTextSummary,
-    buildJsonSummary,
-    toHexPalette,
-    buildConfig,
-    buildState,
-    resolveModule,
-};
+export { generatePalette, formatTextSummary, buildJsonSummary, toHexPalette, buildConfig, buildState, resolveModule };

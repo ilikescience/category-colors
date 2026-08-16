@@ -2,8 +2,8 @@
 // colors that are close to each other have high potential energy,
 // colors that are far away have low potential energy.
 
-const { deltaE } = require('../../utils/deltaE');
-const { resolveDistanceOptions, getMaxDistance } = require('../../utils/distanceOptions');
+import { deltaE } from '../../utils/deltaE.js';
+import { resolveDistanceOptions, getMaxDistance } from '../../utils/distanceOptions.js';
 
 const evaluateEnergy = (state, config) => {
     const colors = state.colors || [];
@@ -36,4 +36,4 @@ const evaluateEnergy = (state, config) => {
     return totalEnergy / (colors.length * (colors.length - 1));
 };
 
-module.exports = evaluateEnergy;
+export default evaluateEnergy;
