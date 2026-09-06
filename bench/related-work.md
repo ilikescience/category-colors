@@ -37,9 +37,9 @@ worth reading before submitting anything.
 
 What the evaluators are built on, rather than competing with:
 CIEDE2000 [sharma2005ciede2000] for distance; Machado et al.
-[machado2009physiologically] for CVD simulation — note the essay cites Brettel
-et al. [brettel1997computerized], but culori implements Machado, so the essay
-and the code currently disagree; Stone, Szafir & Setlur [stone2014engineering]
+[machado2009physiologically] for CVD simulation — the essay's images used
+Brettel et al. [brettel1997computerized], and both the readme and the essay's
+footnote 8 now say the code moved to Machado; Stone, Szafir & Setlur [stone2014engineering]
 for size-dependent JND, with Szafir [szafir2018modeling] as the successor a
 reviewer may ask about; and Heer & Stone [heer2012color] for the saliency table.
 
@@ -126,24 +126,96 @@ this library's output** — third-party rules, not authored by whoever wrote the
 optimizer. Running generated palettes through it and reporting the lint results
 is a stronger move than arguing with it.
 
+## Palettailor, measured
+
+`node bench/run.js --palettailor` runs Palettailor's own library headlessly on
+the same seeds (see `bench/palettailor/readme.md` for how it is fed data it
+was never designed to run without). At 8 colours, ten trials, seed 1:
+
+- Palettailor reaches a slightly *higher* minimum ΔE (26.6 ± 2.4 against
+  23.8 ± 1.1), because it searches lightness 35–95 and any chroma, while the
+  default config here confines the search to a mid-range okhsl box. Its
+  variance is twice as large.
+- Under simulated CVD its minimum ΔE drops to 4.5 ± 1.7 against 7.4 ± 2.3 —
+  under deuteranopia 5.8 against 8.9, protanopia 9.2 against 11.7 — which puts
+  it in the range of the hand-designed reference palettes (0.6 to 5.0).
+  Palettailor has no CVD term at all.
+- On name difference the two are indistinguishable (0.34 ± 0.16 against
+  0.36 ± 0.13) even though it is one of Palettailor's three objectives and
+  absent from the default config here. With `--names 0.5` this library reaches
+  0.53 ± 0.13 for a 0.2 ΔE change on the closest pair, i.e. within noise.
+
+So the CVD claim survives contact with the closest competitor, and it is the
+only one of the three that does. Two caveats to carry into the paper: the
+lightness-range difference means the plain min-ΔE comparison is partly a
+comparison of search spaces, not search methods; and Palettailor's annealing
+schedule accepts nearly every move for the first 60% of its run, so it is
+closer to a short hill-climb than to the annealing this library does — see the
+runner's readme for what its code actually does.
+
+## Colorgorical, cross-scored
+
+`node bench/run.js --colorgorical` runs Colorgorical's original Python code in
+Docker (`bench/colorgorical/readme.md`) and scores every palette in the run on
+its four criteria, each the minimum over pairs. Same run as above:
+
+| | ΔE | name diff | pair pref | name uniq |
+| --- | --- | --- | --- | --- |
+| category-colors | 24.0 ± 1.5 | 0.61 ± 0.08 | −58 ± 10 | 0.52 ± 0.08 |
+| palettailor | 26.6 ± 2.8 | 0.63 ± 0.13 | −67 ± 8 | 0.27 ± 0.10 |
+| colorgorical (own samples) | 15.8 ± 3.2 | 0.45 ± 0.07 | −23 ± 9 | 0.41 ± 0.11 |
+| best reference | 19.7 (observable10) | 0.70 (d3) | −13 (tableau20) | 0.59 (ColorBrewer) |
+
+And the reverse direction, Colorgorical's ten 8-colour sample palettes at its
+all-equal slider setting scored on this benchmark's metrics: minimum ΔE
+15.8 ± 3.3 (against 23.8 here), minimum ΔE under CVD 4.1 ± 1.6 (against 7.4),
+and cosine name difference 0.09 ± 0.06 (against 0.36) — its closest-named
+pair is usually two shades of the same name.
+
+Three things to know before quoting these:
+
+- **Colorgorical's name difference is a different formula.** Its C code takes
+  the Hellinger distance between name-count distributions,
+  `sqrt(1 - Σ sqrt(p_a p_b))`; Heer & Stone define, and Palettailor and the
+  `names` evaluator use, `1 - cosine`. Same data, different metric, and the
+  two rank palettes differently (carbon scores 0.11 on cosine and 0.60 on
+  Hellinger). The paper should say which it means and never mix the columns.
+- **Pair preference is where human judgment lives**, and it is the one
+  criterion Colorgorical clearly wins (−23 against −58 and −67): its samples
+  are selected on it, and neither this library nor Palettailor models it at
+  all. It buys that with a minimum ΔE of 15.8, below every generated palette
+  here and below three of the six references. That is the scope disclaimer in
+  numbers: this library trades preference for discriminability, on purpose.
+- **Name uniqueness is the `saliency` quantity**, and this library scores well
+  on it *without* optimizing it (0.52, second only to ColorBrewer), because the
+  jnd terms push colours apart and apart tends to mean prototypical. The
+  `saliency` evaluator now returns `1 - mean saliency`, so enabling it pushes
+  the same way this column measures; before that fix it inverted the criterion
+  and rewarded colours nobody can name.
+
+Colorgorical's sample palettes come from `bench/colorgorical/samples.json`,
+one seeded run of its authors' own sampling script (20 slider settings × sizes
+3, 5, 8 × 10 palettes); the table uses the setting that weights ΔE, name
+difference and pair preference equally.
+
 ## What the benchmark still needs
 
-- **Colorgorical cross-scoring.** Its `Model.scorePalette(palette, weights)`
-  scores an arbitrary palette on its four criteria, so generated palettes can be
-  measured on their metrics without reimplementing the C extension.
-  `python run.py --makeSamples` batch-generates 66 palettes without the web
-  server. Both need a Python 2.7 environment; Docker is the sane route. Scoring
-  each generator's output on *both* metric sets is the comparison a reviewer
-  wants — winning only on home metrics proves nothing.
-- **Palettailor comparison**, or an explicit statement of why it is out of
-  scope. Given it is the same algorithm on the same problem, silence reads as
-  not having looked.
-- **A human component, or an explicit disclaimer.** Colorgorical, CatPAW, and
-  Petroff all ground part of their objective in human ratings. This library
-  optimizes only measurable quantities and says nothing about preference. That
-  is a defensible scope, but it has to be stated rather than left for a reviewer
-  to notice.
-- **Name difference / name uniqueness terms.** The saliency table already
-  carries the Heer & Stone model, so the data for a name-difference evaluator is
-  largely in the repository. Adding it would make the objective directly
-  commensurable with both Colorgorical and Palettailor.
+- **Verify the UNVERIFIED bib entries** against the publishers.
+- **Run color-buddy over the generated palettes** as the independent
+  validator the linter section argues for.
+
+## Done since the first draft
+
+- **Palettailor comparison** and **Colorgorical cross-scoring** — above.
+- **Human component.** Stated as out of scope in `bench/readme.md` (Caveats)
+  and in the package readme's introduction, with the three human-grounded
+  systems named.
+- **Name difference.** `category-colors/evaluators/names` implements Heer &
+  Stone name difference (`1 - cosine` of term-count vectors) as an evaluator,
+  and the benchmark scores every palette's closest-named pair. The first
+  draft's claim that the data was "largely in the repository" was wrong: the
+  saliency table is one scalar per voxel, and name difference needs the full
+  term matrix, which `bench/buildNameData.js` now builds from the c3
+  repository with a documented 2% truncation (max deviation 0.03 from the
+  full model).
+- **Brettel vs Machado.** Noted in both the readme and the essay.

@@ -13,6 +13,16 @@ about, and simulated annealing searches for the least-wrong compromise.
 This is the code behind the essay
 [How to pick the least wrong colors](https://mattstromawn.com/writing/how-to-pick-the-least-wrong-colors/).
 
+The essay's color-blindness images were made with Brettel, Viénot, and Mollon's
+1997 simulation; the code has since moved to Machado, Oliveira, and Fernandes's
+2009 model, via culori (see [Credits](#credits)).
+
+Every evaluator measures something computable: perceptual distance, contrast,
+simulated color vision deficiency, name overlap. None of them measures whether
+people like a palette or whether its colors suit what they label, so the
+result is a starting point to test with the people who will read it, not a
+finished design.
+
 ## Install
 
 ```bash
@@ -90,6 +100,7 @@ so an ESM file using top-level await will not load.
 | `category-colors/report` | `reportJndIssues` on its own |
 | `category-colors/evaluators` | The evaluators, without going through the main barrel |
 | `category-colors/evaluators/saliency` | The saliency evaluator alone, for loading its lookup table on demand |
+| `category-colors/evaluators/names` | The name-difference evaluator and its helpers; not reachable from the main entry |
 | `category-colors/cli` | `generatePalette` and the CLI's formatting helpers |
 
 The main entry is browser-safe — nothing reachable from it imports a Node
@@ -114,6 +125,10 @@ saliency, build your own from named imports. To defer the table instead of
 dropping it, `await import('category-colors/evaluators/saliency')` keeps it out
 of the initial chunk until something selects it.
 
+The `names` evaluator's table is larger still, about 260 kB, so it is not in
+the main entry at all: `category-colors/evaluators/names` is the only way to
+load it.
+
 ## API
 
 ### Optimization
@@ -128,7 +143,7 @@ of the initial chunk until something selects it.
 ### Configuration and data
 
 - `createDefaultConfig()` / `createDefaultState()` — starting points to spread and edit.
-- `evaluators` — every evaluator, as an object, for building `evalFunctions` dynamically. Also exported individually (`energy`, `range`, `jnd`, `similarity`, `avoid`, `contrast`, `saliency`).
+- `evaluators` — every evaluator, as an object, for building `evalFunctions` dynamically. Also exported individually (`energy`, `range`, `jnd`, `similarity`, `avoid`, `contrast`, `saliency`). `names` lives only at `category-colors/evaluators/names`.
 - `palettes` — established categorical palettes (`observable10`, `d3category10`, `carbon`, `tableau10`, `tableau20`, `colorBrewer3_10`) for comparison or as seeds.
 
 ### Color utilities
@@ -276,6 +291,46 @@ edge — and costs nothing outside every radius. Unlike similarity targets, avoi
 colors are measured exactly as given rather than coerced into the working space,
 since the point is distance from the actual color.
 
+## Name difference
+
+Two colors people would both call "blue" are confusable in a legend even when
+they are far apart in ΔE. `category-colors/evaluators/names` scores that with
+Heer & Stone's color-naming model, the same data behind `saliency`: the
+evaluator returns the palette's mean pairwise name similarity, 0 to 1, and
+slots into `evalFunctions` like any other.
+
+```js
+import { createDefaultConfig } from 'category-colors';
+import names, { nameDifference, nameTerms } from 'category-colors/evaluators/names';
+
+const config = createDefaultConfig();
+config.evalFunctions.push({ function: names, weight: 0.5 });
+
+nameTerms('#7c0000');
+// [{ term: 'red', share: 0.26 }, { term: 'darkred', share: 0.16 }, { term: 'maroon', share: 0.16 }, ...]
+nameDifference('#ff0000', '#0000ff');
+// ≈ 1
+```
+
+`nameDifference(a, b)` is `1 - cosine` of the two colors' naming vectors: 0
+for the same name, 1 for no term in common. It is the quantity Colorgorical and
+Palettailor optimize, so adding `names` makes this objective comparable with
+theirs. The shipped table keeps only terms carrying at least 2% of a color's
+vector, which moves name difference by 0.002 on average and 0.03 at most
+against the full model.
+
+The sibling `saliency` evaluator reads the other half of the same model: how
+consistently people name a single color, rather than how two colors differ. It
+is a cost like every other evaluator, so it returns `1 - mean saliency` and
+minimizing it pulls the palette toward prototypical, nameable colors. Colors
+outside the model's sRGB grid have no naming data and cost the maximum.
+
+```js
+import saliency from 'category-colors/evaluators/saliency';
+
+config.evalFunctions.push({ function: saliency, weight: 0.3 });
+```
+
 ## Custom evaluators
 
 An evaluator takes `(state, config, descriptor)` and returns a cost. Read your
@@ -349,7 +404,7 @@ The evaluators are built on published color science:
 - **CIEDE2000** — Sharma, G., Wu, W., and Dalal, E. N. "The CIEDE2000 Color-Difference Formula." *Color Research & Application*, 2005. Used by every distance-based evaluator.
 - **CVD simulation** — Machado, G. M., Oliveira, M. M., and Fernandes, L. A. F. "A Physiologically-based Model for Simulation of Color Vision Deficiency." *IEEE TVCG*, 2009, via culori's deficiency filters.
 - **Just-noticeable difference** — Stone, M., Szafir, D. A., and Setlur, V. "An Engineering Model for Color Difference as a Function of Size." *Color and Imaging Conference*, 2014.
-- **Saliency** — Heer, J. and Stone, M. "[Color Naming Models for Color Selection, Image Editing and Palette Design](https://vis.stanford.edu/color-names/)." *ACM CHI*, 2012. The `saliency` evaluator's lookup table is their 8,325-voxel CIELAB color-naming model, scoring how consistently people name each color.
+- **Saliency** — Heer, J. and Stone, M. "[Color Naming Models for Color Selection, Image Editing and Palette Design](https://vis.stanford.edu/color-names/)." *ACM CHI*, 2012. The `saliency` evaluator's lookup table is their 8,325-voxel CIELAB color-naming model, scoring how consistently people name each color; the `names` evaluator uses the same model's per-color term counts, from their [c3 repository](https://github.com/StanfordHCI/c3).
 
 ## License
 

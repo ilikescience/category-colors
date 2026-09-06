@@ -1,10 +1,19 @@
 % References for the category-colors write-up.
 %
-% Author lists, titles, venues and years here were checked against the
-% publisher or arXiv listing. Page numbers and DOIs were not all verified
-% individually — check every entry against the publisher of record before
-% submitting anything. Entries marked UNVERIFIED have a field I could not
-% confirm and should be re-derived from the source.
+% Every entry that has a DOI was checked against the publisher of record: the
+% DOI was resolved through doi.org and its author list, volume, issue, pages
+% and year compared field by field against this file, with DBLP as the
+% cross-check where the publisher carries no page range.
+%
+% Two entries deliberately keep a value the publisher's record does not
+% confirm. sharma2005ciede2000 is dated by its print issue, February 2005,
+% where Crossref reports the 2004 online-first date. Crossref carries only the
+% first page of brettel1997computerized; 2647--2655 is the range the paper is
+% universally cited by.
+%
+% Three entries have no DOI and so were not machine-checkable at all:
+% petroff2021accessible, tseng2026catpaw and mcnutt2025linters. Verify those
+% by hand against the publisher before submitting anything.
 
 % ── Optimization-based categorical palette generation ───────────────────────
 % The direct neighbours. Read these before claiming novelty.
@@ -16,6 +25,7 @@
   journal = {IEEE Transactions on Visualization and Computer Graphics},
   volume  = {23},
   number  = {1},
+  pages   = {521--530},
   year    = {2017},
   doi     = {10.1109/TVCG.2016.2598918},
   note    = {Weighted sum over perceptual distance, name difference, name
@@ -29,12 +39,18 @@
              Wang, Yunhai},
   title   = {Palettailor: Discriminable Colorization for Categorical Data},
   journal = {IEEE Transactions on Visualization and Computer Graphics},
+  volume  = {27},
+  number  = {2},
+  pages   = {475--484},
   year    = {2021},
+  doi     = {10.1109/TVCG.2020.3030406},
   eprint  = {2009.02969},
   archivePrefix = {arXiv},
-  note    = {UNVERIFIED volume/number/pages. Simulated annealing over point
-             distinctness, name difference and color discrimination. The
-             closest methodological neighbour to this work.}
+  note    = {Simulated annealing over point distinctness, name difference
+             and color discrimination. The closest methodological neighbour
+             to this work. Library (no licence file, so fetched at run time
+             by bench/palettailor):
+             https://github.com/IAMkecheng/palettailor-library}
 }
 
 @misc{petroff2021accessible,
@@ -110,9 +126,13 @@
   author    = {Stone, Maureen and Szafir, Danielle Albers and Setlur, Vidya},
   title     = {An Engineering Model for Color Difference as a Function of Size},
   booktitle = {Color and Imaging Conference (CIC)},
+  volume    = {22},
+  number    = {1},
+  pages     = {253--258},
   year      = {2014},
-  note      = {UNVERIFIED pages. The size-dependent JND result behind the
-               `jnd` evaluator's threshold.}
+  doi       = {10.2352/CIC.2014.22.1.art00045},
+  note      = {The size-dependent JND result behind the `jnd` evaluator's
+               threshold.}
 }
 
 @article{szafir2018modeling,
@@ -137,21 +157,25 @@
   pages     = {1007--1016},
   year      = {2012},
   doi       = {10.1145/2207676.2208547},
-  note      = {The source of src/evaluators/saliency/saliencies.js. Discretizes
+  note      = {The source of src/evaluators/saliency/saliencies.js and, via
+               bench/buildNameData.js from https://github.com/StanfordHCI/c3,
+               of src/evaluators/names/names-data.js. Discretizes
                the CIELAB gamut into 8,325 voxels and scores each by the entropy
                of its colour-term distribution over the xkcd colour survey.
                http://vis.stanford.edu/color-names/}
 }
 
 @inproceedings{kim2019colornames,
-  author    = {Kim, Younghoon and Thayer, Kyle and Heer, Jeffrey},
+  author    = {Kim, Younghoon and Thayer, Kyle and Gorsky, Gabriella Silva and
+               Heer, Jeffrey},
   title     = {Color Names Across Languages: Salient Colors and Term Translation
                in Multilingual Color Naming Models},
   booktitle = {EuroVis (Short Papers)},
+  pages     = {31--35},
   year      = {2019},
-  note      = {UNVERIFIED author list — a third author may be missing. Extends
-               heer2012color beyond English; relevant if saliency is claimed as
-               anything other than English-specific.}
+  doi       = {10.2312/evs.20191166},
+  note      = {Extends heer2012color beyond English; relevant if saliency is
+               claimed as anything other than English-specific.}
 }
 
 @article{setlur2016linguistic,
@@ -161,9 +185,9 @@
   journal = {IEEE Transactions on Visualization and Computer Graphics},
   volume  = {22},
   number  = {1},
+  pages   = {698--707},
   year    = {2016},
-  doi     = {10.1109/TVCG.2015.2467471},
-  note    = {UNVERIFIED pages.}
+  doi     = {10.1109/TVCG.2015.2467471}
 }
 
 % ── Evaluation, linting, and design tooling ─────────────────────────────────
