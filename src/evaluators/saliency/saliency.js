@@ -23,12 +23,17 @@ const saliency = (color) => {
     return saliencies[key] ?? 0;
 };
 
+// Cost, so it is inverted: a palette of prototypical, consistently named colors
+// scores near 0 and one of colors people cannot name scores near 1. Colors off
+// the model's grid look up 0 and so cost the maximum, which is the right
+// direction — the grid covers sRGB, and a color outside it is one nobody in the
+// survey was ever asked to name.
 const evaluateSaliency = (state) => {
     const colors = state.colors || [];
     if (colors.length === 0) {
         return 0;
     }
-    return colors.reduce((sum, color) => sum + saliency(color), 0) / colors.length;
+    return 1 - colors.reduce((sum, color) => sum + saliency(color), 0) / colors.length;
 };
 
 export { saliency };

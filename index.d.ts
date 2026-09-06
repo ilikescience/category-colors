@@ -211,7 +211,7 @@ export const similarity: Evaluator;
 export const avoid: Evaluator;
 export const jnd: Evaluator;
 export const contrast: Evaluator;
-/** Mean perceptual saliency. Carries a ~150 kB lookup table. */
+/** Nameability cost: `1 - mean saliency`, low for colors people name consistently. Carries a ~150 kB lookup table. */
 export const saliency: Evaluator;
 
 /**
