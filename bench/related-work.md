@@ -239,13 +239,23 @@ find if the paper does not say them first.
   `color-name-discriminability` pass for every generated palette and fail for
   the control, which is the sanity check that the linter and `minDeltaE` are
   measuring the same thing.
-- **Deuteranopia is a coin flip, and that is awkward**, because deuteranomaly
-  carries the highest weight in the default config, more than three times
-  protanomaly's. The config models *anomalous trichromacy at severity 0.5* and
-  the rule tests *full dichromacy*, so they are not the same condition; but a
-  reader will reasonably expect the heaviest-weighted term to produce the
-  strongest result, and it does not. Either the weights or the claim needs
-  revisiting. Grayscale never passes at all and is not modelled.
+- **Deuteranopia is a coin flip, for two reasons worth separating.** The
+  first is a measurement difference, not a palette difference: color-buddy
+  simulates dichromacy with an LMS-matrix model (`@bjornlu/colorblind`, inlined
+  in its bundle) while `bench/metrics.js` uses culori's Machado filters, and
+  on a borderline pair they disagree. The closest deuteranopia pair in one
+  generated palette, `#613741` and `#486948`, measures 12.45 under Machado and
+  8.78 under color-buddy's model, clearing this benchmark comfortably and
+  missing the rule's threshold of 9 by 0.22. So a verdict that flips with the
+  seed is partly an artifact of which simulation is used, and the protanopia
+  result matters more precisely because its margin is wide.
+
+  The second reason is still open: deuteranomaly carries the highest weight in
+  the default config, more than three times protanomaly's, and produces the
+  weaker outcome under either model. The config models *anomalous trichromacy
+  at severity 0.5* while the rule tests *full dichromacy*, so they are not the
+  same condition, but the gap deserves a look. Grayscale never passes and is
+  not modelled at all.
 - **The linter faults the palettes for uneven lightness**, nine times in ten
   on `even-colors-lightness` and always on `fair-nominal`. Spreading lightness
   is precisely how the optimizer buys separation under simulated CVD, and
@@ -265,9 +275,12 @@ each other about deuteranopia and protanopia. The table above is over ten.
   of `references.bib`.
 - **Reconcile the CVD weights with the CVD results.** Deuteranomaly carries
   the highest weight in the default config and produces the weaker outcome;
-  protanomaly carries a fifth of it and produces the stronger one. Worth
-  checking whether the weights are doing what they were meant to do before
-  any of this is written up.
+  protanomaly carries a fifth of it and produces the stronger one. Part of
+  that is the simulation difference described above, but not all of it.
+- **Decide whether to report both CVD models.** Any CVD claim is relative to
+  a simulation, and the two in use here disagree near the threshold. Naming
+  the model beside every number would cost a column and remove an obvious
+  line of attack.
 - **Decide whether to model tritanopia and grayscale at all**, which
   color-buddy flags and the default config does not touch.
 

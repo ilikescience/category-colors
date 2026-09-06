@@ -120,7 +120,9 @@ whatever space they need.
 ## Does it agree with the benchmark?
 
 Partly, and not in the way a pass count would suggest. Four palettes, 8 colors
-each, on a white background, scored by `bench/metrics.js` and linted here:
+each, on a white background, scored by `bench/metrics.js` and linted here. The
+generated row is a single draw from a single seed, and some verdicts move with
+the seed:
 
 | Palette | min ΔE | min CVD ΔE | Failed | error / warning |
 | --- | --- | --- | --- | --- |
@@ -154,8 +156,17 @@ fails for `tableau10` (min ΔE 3.2 under protanopia), for `colorBrewer3_10`
 (4.7), and for the near-identical palette, and passes only for the generated
 palette (15.8). That is the CVD-as-objective-term claim in
 [related-work.md](../related-work.md), validated by someone else's threshold.
-The deuteranopia, tritanopia and grayscale rules fail for all four palettes,
-including both references, so they separate nothing at this palette size.
+
+**The CVD verdicts are not directly comparable to the benchmark's CVD column.**
+Both simulate the same conditions, but with different models: the CVD rules run
+color-buddy's own simulation, an LMS-matrix dichromacy model from
+`@bjornlu/colorblind`, then require symmetric CIEDE2000 above 9 for every pair.
+`bench/metrics.js` uses culori's Machado et al. filters. On the generated
+palette the closest deuteranopia pair, `#613741` and `#486948`, measures 12.45
+under Machado and 8.78 under color-buddy's model, so it clears the benchmark
+comfortably and misses the rule's threshold by 0.22. A generated palette can
+therefore pass or fail `cvd-friendly-deuteranopia` depending on the seed, and
+the pass is worth less than the protanopia result, where the margin is wide.
 
 **Five rules fail for every palette in the set**, good and bad alike:
 `contrast-aa-all`, `contrast-aaa-all`, and the deuteranopia, tritanopia and
