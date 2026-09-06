@@ -198,15 +198,83 @@ one seeded run of its authors' own sampling script (20 slider settings × sizes
 3, 5, 8 × 10 palettes); the table uses the setting that weights ΔE, name
 difference and pair preference equally.
 
+## color-buddy, as independent validator
+
+The section above argues that the right move is to run generated palettes
+through color-buddy's rules rather than argue with it. `bench/colorbuddy`
+does that with the published `color-buddy-palette-lint` package and only its
+built-in rules, so they are third-party in the sense that matters: not
+authored by whoever wrote the optimizer.
+
+**Do not quote a pass count.** Of the 38 prebuilt rules, nine never apply to
+an untagged categorical palette and four more pass vacuously because they
+check only colors carrying a tag the GUI sets; `bench/colorbuddy/readme.md`
+names all thirteen. Worse, the count does not rank: ten generated palettes
+fail 9.9 rules on average, `tableau10` fails 9, and a control palette of
+eight near-identical colors fails only 13. A metric that separates a good
+palette from a deliberately terrible one by three points is not a quality
+measure.
+
+The rule identities, over ten generated palettes at seed 1 and the six
+reference palettes truncated to eight colors:
+
+| rule | generated | references |
+| --- | --- | --- |
+| `cvd-friendly-protanopia` | 7/10 pass | 0/6 pass |
+| `cvd-friendly-deuteranopia` | 4/10 pass | 1/6 pass (carbon) |
+| `cvd-friendly-tritanopia` | 2/10 pass | 0/6 pass |
+| `cvd-friendly-grayscale` | 0/10 pass | 0/6 pass |
+| `mutually-distinct` | 10/10 pass | fails only for the control |
+| `color-name-discriminability` | 10/10 pass | fails only for the control |
+| `even-colors-lightness` | 1/10 pass | — |
+| `fair-nominal` | 0/10 pass | — |
+
+Four things follow, and the third and fourth are the ones a reviewer will
+find if the paper does not say them first.
+
+- **Protanopia is the claim that holds.** Seven of ten generated palettes
+  clear a threshold no reference palette clears. This is the CVD-as-objective
+  argument confirmed against someone else's rule and someone else's number.
+- **The distance rules agree with the benchmark.** `mutually-distinct` and
+  `color-name-discriminability` pass for every generated palette and fail for
+  the control, which is the sanity check that the linter and `minDeltaE` are
+  measuring the same thing.
+- **Deuteranopia is a coin flip, and that is awkward**, because deuteranomaly
+  carries the highest weight in the default config, more than three times
+  protanomaly's. The config models *anomalous trichromacy at severity 0.5* and
+  the rule tests *full dichromacy*, so they are not the same condition; but a
+  reader will reasonably expect the heaviest-weighted term to produce the
+  strongest result, and it does not. Either the weights or the claim needs
+  revisiting. Grayscale never passes at all and is not modelled.
+- **The linter faults the palettes for uneven lightness**, nine times in ten
+  on `even-colors-lightness` and always on `fair-nominal`. Spreading lightness
+  is precisely how the optimizer buys separation under simulated CVD, and
+  `fair-nominal`'s own failure message says it "is naturally at odds with
+  color vision deficiency friendly palettes". This is a real disagreement
+  about priorities rather than a defect in either tool, and it should be
+  reported as the cost of the trade rather than omitted.
+
+A caution for anyone re-running this: the CVD verdicts vary from trial to
+trial, so a single generated palette proves nothing in either direction. The
+first two attempts at this comparison, on one palette each, disagreed with
+each other about deuteranopia and protanopia. The table above is over ten.
+
 ## What the benchmark still needs
 
-- **Verify the UNVERIFIED bib entries** against the publishers.
-- **Run color-buddy over the generated palettes** as the independent
-  validator the linter section argues for.
+- **A manual pass on the three citations with no DOI**, named in the header
+  of `references.bib`.
+- **Reconcile the CVD weights with the CVD results.** Deuteranomaly carries
+  the highest weight in the default config and produces the weaker outcome;
+  protanomaly carries a fifth of it and produces the stronger one. Worth
+  checking whether the weights are doing what they were meant to do before
+  any of this is written up.
+- **Decide whether to model tritanopia and grayscale at all**, which
+  color-buddy flags and the default config does not touch.
 
 ## Done since the first draft
 
-- **Palettailor comparison** and **Colorgorical cross-scoring** — above.
+- **Palettailor comparison**, **Colorgorical cross-scoring** and
+  **color-buddy validation** — above.
 - **Human component.** Stated as out of scope in `bench/readme.md` (Caveats)
   and in the package readme's introduction, with the three human-grounded
   systems named.

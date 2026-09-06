@@ -78,5 +78,8 @@
   "dependencies": {
     "culori": "^4.0.2",
     "munkres-algorithm": "^1.0.2"
+  },
+  "devDependencies": {
+    "color-buddy-palette-lint": "^0.0.8"
   }
 }

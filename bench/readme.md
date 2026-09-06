@@ -79,6 +79,12 @@ uniqueness is the quantity the `saliency` evaluator looks up. Colorgorical also
 snaps colors to its 5-unit Lab grid before scoring, so its ΔE differs slightly
 from `minDeltaE`.
 
+`bench/colorbuddy` runs the palettes through color-buddy's published lint
+rules (McNutt et al.), which is the one check here not written by the same
+hand as the optimizer. See [bench/colorbuddy](colorbuddy/readme.md); the
+results are read in `related-work.md`, including the rules this library
+fails.
+
 ## Caveats
 
 The reference palettes are not all optimizing for the same thing. ColorBrewer's
