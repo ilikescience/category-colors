@@ -4,6 +4,7 @@
 
 import { wcagContrast } from 'culori';
 import { createColor, deltaE, simulateCvd } from '../src/index.js';
+import { nameDifference } from '../src/evaluators/names/names.js';
 
 /** The CVD conditions each palette is scored under. */
 export const CVD_CONDITIONS = [
@@ -16,15 +17,18 @@ export const CVD_CONDITIONS = [
 
 const DISTANCE = { method: 'ciede2000', space: 'lab65' };
 
-const pairwiseDistances = (colors) => {
-    const distances = [];
+const pairwise = (colors, measure) => {
+    const values = [];
     for (let i = 0; i < colors.length; i++) {
         for (let j = i + 1; j < colors.length; j++) {
-            distances.push(deltaE(colors[i], colors[j], DISTANCE));
+            values.push(measure(colors[i], colors[j]));
         }
     }
-    return distances;
+    return values;
 };
+
+const pairwiseDistances = (colors) =>
+    pairwise(colors, (a, b) => deltaE(a, b, DISTANCE));
 
 const summarize = (values) => {
     const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
@@ -41,6 +45,10 @@ const summarize = (values) => {
  * CVD variants are the same statistic measured after simulation, and
  * `uniformity` is the coefficient of variation of all pairwise distances —
  * lower means no pair is disproportionately close or far.
+ *
+ * `minNameDifference` and `meanNameDifference` are Heer & Stone name difference
+ * (1 - cosine of the colors' naming vectors), the term Colorgorical and
+ * Palettailor both optimize; 0 means two colors get the same name.
  */
 export const scorePalette = (input) => {
     const colors = input.map((color) => createColor(color));
@@ -53,6 +61,7 @@ export const scorePalette = (input) => {
         cvd[condition.label] = Math.min(...pairwiseDistances(simulated.colors));
     }
 
+    const names = summarize(pairwise(colors, nameDifference));
     const contrasts = colors.map((color) => String(color));
     return {
         colorCount: colors.length,
@@ -62,6 +71,8 @@ export const scorePalette = (input) => {
         uniformity: sd / mean,
         cvd,
         minCvdDeltaE: Math.min(...Object.values(cvd)),
+        minNameDifference: names.min,
+        meanNameDifference: names.mean,
         minContrastWhite: Math.min(...contrasts.map((c) => wcagContrast(c, '#ffffff'))),
         minContrastBlack: Math.min(...contrasts.map((c) => wcagContrast(c, '#000000'))),
     };
