@@ -14,14 +14,16 @@ const toLab = converter('lab65');
 const labChannels = getChannels('lab65');
 
 // The dataset is sampled on a 5-unit lab65 grid, so a lookup rounds each
-// channel to the nearest 5 to find its cell.
-const saliency = (color) => {
+// channel to the nearest 5 to find its cell. The names evaluator indexes the
+// same grid, so the key lives here for both.
+const voxelKey = (color) => {
     const converted = toLab(color);
-    const key = labChannels
+    return labChannels
         .map((channel) => Math.round((converted[channel] ?? 0) / 5) * 5)
         .join(',');
-    return saliencies[key] ?? 0;
 };
+
+const saliency = (color) => saliencies[voxelKey(color)] ?? 0;
 
 // Cost, so it is inverted: a palette of prototypical, consistently named colors
 // scores near 0 and one of colors people cannot name scores near 1. Colors off
@@ -36,5 +38,5 @@ const evaluateSaliency = (state) => {
     return 1 - colors.reduce((sum, color) => sum + saliency(color), 0) / colors.length;
 };
 
-export { saliency };
+export { saliency, voxelKey };
 export default evaluateSaliency;

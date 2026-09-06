@@ -45,6 +45,10 @@
       "types": "./types/saliency.d.ts",
       "default": "./src/evaluators/saliency/saliency.js"
     },
+    "./evaluators/names": {
+      "types": "./types/names.d.ts",
+      "default": "./src/evaluators/names/names.js"
+    },
     "./cli": {
       "types": "./types/cli.d.ts",
       "default": "./src/cli/generatePalette.js"
