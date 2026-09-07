@@ -1,5 +1,51 @@
 # Changelog
 
+## 2.0.0
+
+### Changed
+
+- **The default palette now optimizes for color vision deficiency far harder,
+  and trades ordinary separation to do it.** `createDefaultConfig()` previously
+  carried two CVD terms, protanomaly and deuteranomaly at half severity. It now
+  carries four at full severity: protanopia and deuteranopia at weight 0.3
+  each, tritanopia at 0.2, and grayscale at 0.1. The unimpaired `jnd` term
+  rises from 0.15 to 0.3 to hold some separation back.
+
+  Anyone generating palettes with the defaults will get different palettes.
+  Measured over ten seeds at eight colors:
+
+  | | 1.x | 2.0 |
+  | --- | --- | --- |
+  | minimum ΔE | 23.8 | 19.0 |
+  | minimum ΔE, deuteranopia | 8.9 | 16.1 |
+  | minimum ΔE, protanopia | 11.7 | 16.2 |
+  | minimum ΔE, tritanopia | 10.6 | 17.2 |
+  | minimum ΔE, grayscale | 0.8 | 7.9 |
+
+  The choice was made from measurement, not taste: modeling full dichromacy
+  rather than anomaly at half severity roughly doubled the CVD minima for
+  about one point of unimpaired separation, and an independent linter
+  (color-buddy) went from failing the deuteranopia rule six times in ten to
+  passing it ten times in ten. To get the old behavior, keep the terms you
+  want and raise the unimpaired `jnd` weight; the readme shows how.
+
+### Added
+
+- **`grayscale` as a simulation type** for `simulateCvd` and the `cvd`
+  descriptor. It is culori's luminance projection, the matrix behind CSS
+  `filter: grayscale()`, and stands in for printing and photocopying. It is
+  deliberately not called achromatopsia, because it is not a physiological
+  model of anyone's vision.
+
+### Documentation
+
+- Every CVD number in the readme and the benchmark now names the model that
+  produced it. The deficiency filters implement Machado, Oliveira and
+  Fernandes (2009) via culori. This matters: color-buddy's lint rules simulate
+  the same conditions with a different model and disagree near their
+  thresholds, where a pair measuring 12.45 under one can measure 8.78 under
+  the other.
+
 ## 1.1.0
 
 ### Added
