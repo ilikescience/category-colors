@@ -11,9 +11,20 @@
 % first page of brettel1997computerized; 2647--2655 is the range the paper is
 % universally cited by.
 %
-% Three entries have no DOI and so were not machine-checkable at all:
-% petroff2021accessible, tseng2026catpaw and mcnutt2025linters. Verify those
-% by hand against the publisher before submitting anything.
+% The three entries that had no DOI have now been checked by hand.
+%
+% tseng2026catpaw and mcnutt2025linters were both published in the meantime
+% and now carry publisher DOIs, verified like the rest: CHI 2026 through
+% Crossref and the first author's publication page, and the January 2025 TVCG
+% issue through Crossref, DBLP and a doi.org resolution to IEEE Xplore.
+%
+% petroff2021accessible still has no DOI, and correctly so: arXiv is the
+% record. The arXiv listing, the DataCite record for the arXiv DOI and
+% Petroff's DBLP page all show a preprint with no venue.
+%
+% One field is left out on purpose. The ACM page for tseng2026catpaw gives
+% article number 1155, which Crossref does not carry and which could not be
+% read from dl.acm.org directly, so the entry cites only the page range.
 
 % ── Optimization-based categorical palette generation ───────────────────────
 % The direct neighbours. Read these before claiming novelty.
@@ -60,23 +71,35 @@
   eprint        = {2107.02270},
   archivePrefix = {arXiv},
   primaryClass  = {cs.GR},
+  url           = {https://arxiv.org/abs/2107.02270},
   note          = {Constrained optimization with minimum-perceptual-distance
                    constraints under simulated CVD, minimum-lightness-distance
-                   for grayscale, and a color-saliency term. Last revised 2024.}
+                   for grayscale, and a color-saliency term. arXiv is the
+                   record: the arXiv listing, the DataCite record for the
+                   arXiv DOI and DBLP all show a preprint with no venue.
+                   Current version is v3, 29 February 2024. DBLP and Semantic
+                   Scholar still index the v1 title, ``Accessible Color Cycles
+                   for Data Visualization''.}
 }
 
 @inproceedings{tseng2026catpaw,
   author        = {Tseng, Chin and Wang, Arran Zeyu and
                    Quadri, Ghulam Jilani and Szafir, Danielle Albers},
   title         = {Redundant is Not Redundant: Automating Efficient Categorical
-                   Palette Design Unifying Color and Shape Encodings with CatPAW},
-  booktitle     = {Proceedings of the CHI Conference on Human Factors in
+                   Palettes Design Unifying Color \& Shape Encodings with
+                   {CatPAW}},
+  booktitle     = {Proceedings of the 2026 CHI Conference on Human Factors in
                    Computing Systems},
+  pages         = {1--18},
   year          = {2026},
+  doi           = {10.1145/3772318.3791244},
   eprint        = {2602.06792},
   archivePrefix = {arXiv},
-  note          = {Conditionally accepted to CHI 2026. Four crowdsourced
-                   experiments on redundant colour-shape encoding.}
+  note          = {Four crowdsourced experiments on redundant colour-shape
+                   encoding. Published at CHI 2026 in Barcelona, so no longer
+                   only conditionally accepted. Note the published title reads
+                   ``Palettes Design'' where the arXiv version reads ``Palette
+                   Design''.}
 }
 
 % ── Perceptual foundations the evaluators are built on ──────────────────────
@@ -193,13 +216,20 @@
 % ── Evaluation, linting, and design tooling ─────────────────────────────────
 
 @article{mcnutt2025linters,
-  author  = {McNutt, Andrew and Stone, Maureen and Heer, Jeffrey},
+  author  = {McNutt, Andrew and Stone, Maureen C. and Heer, Jeffrey},
   title   = {Mixing Linters with {GUIs}: A Color Palette Design Probe},
   journal = {IEEE Transactions on Visualization and Computer Graphics},
+  volume  = {31},
+  number  = {1},
+  pages   = {327--337},
   year    = {2025},
-  note    = {Proc. IEEE VIS. The color-buddy tool. A design probe about linter
-             UX, not a generator — see related-work.md on why the comparison
-             axis matters. https://color-buddy.netlify.app}
+  doi     = {10.1109/TVCG.2024.3456317},
+  eprint  = {2407.21285},
+  archivePrefix = {arXiv},
+  note    = {Presented at IEEE VIS 2024, published in the January 2025 TVCG
+             issue. The color-buddy tool. A design probe about linter UX, not
+             a generator — see related-work.md on why the comparison axis
+             matters. https://color-buddy.netlify.app}
 }
 
 % ── Reference palettes used in the benchmark ────────────────────────────────
