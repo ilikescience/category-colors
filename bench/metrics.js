@@ -6,13 +6,20 @@ import { wcagContrast } from 'culori';
 import { createColor, deltaE, simulateCvd } from '../src/index.js';
 import { nameDifference } from '../src/evaluators/names/names.js';
 
-/** The CVD conditions each palette is scored under. */
+/**
+ * The conditions each palette is scored under. The five deficiencies use
+ * culori's filters, which implement Machado et al. (2009); grayscale is a
+ * luminance projection standing in for print, not a model of anyone's vision.
+ * Every CVD number here is relative to those models and should be reported
+ * with them named.
+ */
 export const CVD_CONDITIONS = [
     { label: 'deuteranomaly-0.5', type: 'deuteranomaly', severity: 0.5 },
     { label: 'deuteranopia', type: 'deuteranopia', severity: 1 },
     { label: 'protanomaly-0.5', type: 'protanomaly', severity: 0.5 },
     { label: 'protanopia', type: 'protanopia', severity: 1 },
     { label: 'tritanopia', type: 'tritanopia', severity: 1 },
+    { label: 'grayscale', type: 'grayscale', severity: 1 },
 ];
 
 const DISTANCE = { method: 'ciede2000', space: 'lab65' };

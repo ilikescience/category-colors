@@ -1,9 +1,22 @@
-// Algorithm for simulating a color as it may appear to a person with color deficiency
-// Uses Culori's built-in deficiency filters based on Machado et al. (2009)
-// "A Physiologically-based Model for Simulation of Color Vision Deficiency"
+// Simulates a color as it may appear under a color vision deficiency.
+//
+// The three dichromacy filters are culori's, which implement Machado, Oliveira
+// and Fernandes (2009), "A Physiologically-based Model for Simulation of Color
+// Vision Deficiency". Any claim about CVD is relative to the model that
+// produced it, so name this one wherever the numbers are reported.
+//
+// 'grayscale' is deliberately not one of them. It is culori's luminance
+// projection, the same matrix CSS `filter: grayscale()` uses, and it stands in
+// for printing or photocopying rather than for a person's vision. It is not a
+// physiological model of achromatopsia and must not be described as one.
 
 import { createColor } from '../utils/paletteColor.js';
-import { filterDeficiencyProt, filterDeficiencyDeuter, filterDeficiencyTrit, } from 'culori';
+import {
+    filterDeficiencyProt,
+    filterDeficiencyDeuter,
+    filterDeficiencyTrit,
+    filterGrayscale,
+} from 'culori';
 
 const getCvdFilter = (cvdType, severity) => {
     if (cvdType === "Normal") {
@@ -23,6 +36,8 @@ const getCvdFilter = (cvdType, severity) => {
         case 'tritanomaly':
         case 'tritanopia':
             return filterDeficiencyTrit(severity);
+        case 'grayscale':
+            return filterGrayscale(severity);
         default:
             throw new Error(`Unknown CVD type: ${cvdType}`);
     }
