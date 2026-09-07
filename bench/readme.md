@@ -20,6 +20,13 @@ See [related-work.md](related-work.md) for the surrounding literature, where
 this library sits within it, and what the comparison still needs;
 [references.bib](references.bib) has the citations.
 
+Every measurement here is relative to choices this project made: a
+just-noticeable-difference threshold of 20, CIEDE2000 in CIELAB D65, and
+Machado et al. (2009) for deficiency simulation. They are conventional and
+sourced, but they are choices, and the claim is that the optimizer does well
+*on these terms* rather than in some absolute sense. `related-work.md` covers
+what happens when the threshold and the model are varied.
+
 ## What is measured
 
 | Metric | Why it is here |
@@ -91,10 +98,13 @@ snaps colors to its 5-unit Lab grid before scoring, so its ΔE differs slightly
 from `minDeltaE`.
 
 `bench/colorbuddy` runs the palettes through color-buddy's published lint
-rules (McNutt et al.), which is the one check here not written by the same
-hand as the optimizer. See [bench/colorbuddy](colorbuddy/readme.md); the
-results are read in `related-work.md`, including the rules this library
-fails.
+rules (McNutt et al.). Those rules use a different threshold and a different
+CVD simulation model than this benchmark, so they are useful for asking
+whether a result depends on the choices made here. They are **not** an
+independent validation of the optimizer: an earlier run of them prompted a
+change to the default CVD weights, which makes them an input to the design.
+See [bench/colorbuddy](colorbuddy/readme.md), and `related-work.md` for what
+the results do and do not support, including the rules this library fails.
 
 ## Caveats
 

@@ -120,11 +120,16 @@ and it is worth saying so explicitly — it turns a weakness into evidence of ca
 answer to "a linter tells you which rule failed and a scalar does not".
 
 The defensible framing is complementarity: continuous relaxation is what makes
-automated search possible, discrete rules are what make guarantees and
-explanations possible, and **color-buddy is the natural independent validator for
-this library's output** — third-party rules, not authored by whoever wrote the
-optimizer. Running generated palettes through it and reporting the lint results
-is a stronger move than arguing with it.
+automated search possible, and discrete rules are what make guarantees and
+explanations possible. Running generated palettes through color-buddy and
+reporting the results, failures included, is a stronger move than arguing with
+it.
+
+An earlier draft of this section called color-buddy "the natural independent
+validator for this library's output". That was wrong, and the mistake is worth
+keeping visible: its rules then prompted a change to the default CVD weights,
+at which point it stopped being independent of the design. See "What a
+different model and threshold say" below for what it can and cannot support.
 
 ## Palettailor, measured
 
@@ -213,69 +218,95 @@ one seeded run of its authors' own sampling script (20 slider settings × sizes
 3, 5, 8 × 10 palettes); the table uses the setting that weights ΔE, name
 difference and pair preference equally.
 
-## color-buddy, as independent validator
+## What is being claimed, and on whose terms
 
-The section above argues that the right move is to run generated palettes
-through color-buddy's rules rather than argue with it. `bench/colorbuddy`
-does that with the published `color-buddy-palette-lint` package and only its
-built-in rules, so they are third-party in the sense that matters: not
-authored by whoever wrote the optimizer.
+The claim this work makes is narrow and should be stated in its own words
+before anyone else states it for us:
 
-**Do not quote a pass count.** Of the 38 prebuilt rules, nine never apply to
-an untagged categorical palette and four more pass vacuously because they
-check only colors carrying a tag the GUI sets; `bench/colorbuddy/readme.md`
-names all thirteen. Worse, the count does not rank: ten generated palettes
-fail 9.9 rules on average, `tableau10` fails 9, and a control palette of
-eight near-identical colors fails only 13. A metric that separates a good
-palette from a deliberately terrible one by three points is not a quality
-measure.
+> Given a just-noticeable-difference threshold of 20, CIEDE2000 distance in
+> CIELAB D65, and Machado et al. (2009) as the color vision deficiency model,
+> this optimizer produces palettes that score better on those terms than the
+> established categorical palettes and than the two published generators that
+> solve the same problem.
 
-The rule identities, over ten generated palettes and the six reference
-palettes truncated to eight colors:
+Every part of that is a **choice**, not a discovery. The threshold comes from
+Stone, Szafir & Setlur [stone2014engineering]; the distance metric from
+[sharma2005ciede2000]; the deficiency model is culori's implementation of
+[machado2009physiologically]. They are defensible and conventional, and they
+are also ours. A reviewer's first move will be to ask whether the result is an
+artifact of picking them, so the next two sections answer that directly rather
+than waiting for the question.
 
-| rule | generated | references |
-| --- | --- | --- |
-| `cvd-friendly-protanopia` | 10/10 pass | 0/6 pass |
-| `cvd-friendly-deuteranopia` | 10/10 pass | 1/6 pass (carbon) |
-| `cvd-friendly-tritanopia` | 8/10 pass | 0/6 pass |
-| `cvd-friendly-grayscale` | 0/10 pass | 0/6 pass |
-| `mutually-distinct` | 10/10 pass | fails only for the control |
-| `color-name-discriminability` | 10/10 pass | fails only for the control |
-| `even-colors-lightness` | 10/10 pass | — |
-| `fair-nominal` | 0/10 pass | — |
+## The result does not depend on the threshold
 
-Four things follow.
+The strongest evidence is threshold-free. Take each palette's **worst pair
+under any simulated condition** — the number that decides whether a reader
+confuses two categories — over ten trials at eight colors:
 
-- **All three dichromacy rules now pass, and no reference palette passes more
-  than one.** This is the CVD claim confirmed against thresholds and a
-  simulation model nobody here chose. It is also a direct consequence of the
-  default config being changed to model dichromacy rather than anomaly at half
-  severity, which was itself prompted by an earlier run of this same lint.
-- **The distance rules agree with the benchmark.** `mutually-distinct` and
-  `color-name-discriminability` pass for every generated palette and fail for
-  a control of near-identical colors, which is the check that the linter and
-  `minDeltaE` measure the same thing.
-- **`cvd-friendly-grayscale` never passes, and cannot.** It requires every
-  pair to differ by more than 9 after a grayscale projection. Adding a
-  grayscale term to the objective lifted the palettes' own grayscale minimum
-  from 0.8 to about 7.9, but the score plateaus there no matter how the weight
-  is raised: eight colors cannot be spread far enough in lightness alone while
-  the other terms still hold. The gap between 7.9 and the threshold of 9 is
-  the honest limit, and the reference palettes sit between 0.0 and 2.5, with
-  two of `d3category10`'s colors identical in grayscale.
-- **`fair-nominal` never passes, and the conflict is real.** It wants a
-  lightness range under 50, and spreading lightness is exactly how the
-  grayscale and CVD terms buy separation. Its own failure message says it "is
-  naturally at odds with color vision deficiency friendly palettes". Adding the
-  grayscale term did, though, flip `even-colors-lightness` from 1/10 to 10/10:
-  the lightness spread is now even, just wide.
+| | worst pair per palette, sorted |
+| --- | --- |
+| category-colors | 7.0 7.8 7.9 7.9 8.0 8.0 8.0 8.0 8.0 8.0 |
+| palettailor | 0.2 0.2 0.3 0.4 0.4 1.3 1.6 1.6 2.6 3.4 |
+| colorgorical | 0.2 0.3 0.5 0.8 0.8 0.9 1.0 1.1 1.1 2.6 |
 
-A caution for anyone re-running this: measure over trials, never one palette.
-The first two attempts here, on one palette each, disagreed with each other
-about deuteranopia and protanopia, and under the previous defaults the
-deuteranopia verdict was close enough to the threshold to flip with the seed.
-The tables above are over ten trials, and the margins are now wide enough that
-they no longer flip; that is itself part of the result.
+**The distributions do not overlap.** Any cutoff between 3.4 and 7.0 separates
+them completely, so the ranking survives any reasonable choice of threshold,
+including ones chosen by someone hostile to it. Ten of ten Palettailor
+palettes and ten of ten Colorgorical palettes contain a pair below ΔE 5 under
+some condition; eight and nine of ten respectively fall below 2, which is two
+colors nobody can tell apart. None of ours falls below 7.
+
+This is also the number to quote rather than a count of failing pairs, because
+a count says something different and weaker. Counting pairs below 20, out of
+280, this library and Palettailor are effectively tied: 13% against 12% under
+deuteranopia, 13% against 11% under protanopia, and Palettailor is *better*
+with no simulation at all, 0% against 4%. Its palettes are more spread out on
+average and catastrophic in the tail. Ours are tighter on average with no
+catastrophic pair. Since a palette fails on its worst pair, the tail is what
+matters — the same reason the benchmark reports minima rather than means.
+
+## What a different model and threshold say
+
+`bench/colorbuddy` runs color-buddy's published lint rules, which make
+different choices than we do: a threshold of 9 rather than 20, and an
+LMS-matrix dichromacy model from `@bjornlu/colorblind` rather than Machado.
+Under those different choices the ranking is the same. All three dichromacy
+rules pass for ten of ten generated palettes; no reference palette passes more
+than one, and Palettailor passes protanopia three times in ten, deuteranopia
+once.
+
+**This is not independent validation, and must not be presented as such.**
+An earlier run of this same lint is what prompted re-examining the CVD weights,
+which led to the defaults changing from anomaly at half severity to full
+dichromacy. The tool is therefore an input to the design. What it can honestly
+support is narrower: that the result is not an artifact of our particular
+threshold or our particular simulation model, since a different pair of both
+ranks the palettes the same way. Disclose the sequence, in the paper, before a
+reviewer finds it in the commit history.
+
+Two of its rules this library fails, and they are worth reporting:
+
+- **`cvd-friendly-grayscale` is unreachable**, not merely failed. It requires
+  every pair to differ by more than 9 after a grayscale projection. Adding a
+  grayscale term lifted our own grayscale minimum from 0.8 to about 7.9, and
+  it plateaus there at any weight: eight colors cannot be spread far enough in
+  lightness alone while the other terms hold. The references sit between 0.0
+  and 2.5, with two of `d3category10`'s colors identical in grayscale, so the
+  palette is unusable in print.
+- **`fair-nominal` fails, and the conflict is genuine.** It wants a lightness
+  range under 50, and spreading lightness is how the CVD and grayscale terms
+  buy separation. Its own message concedes it "is naturally at odds with color
+  vision deficiency friendly palettes". Adding the grayscale term did flip
+  `even-colors-lightness` from 1/10 to 10/10: the spread is now even, just wide.
+
+Several of its rules are frank matters of taste (`avoid-green`,
+`ugly-colors`, `require-color-complements`), its pass count does not rank
+palettes at all — a control of eight near-identical colors fails only 13 of 29
+applicable rules against 9 for the best reference — and thirteen of its 38
+rules either never apply to an untagged categorical palette or pass vacuously.
+`bench/colorbuddy/readme.md` has the details. None of that is a criticism of
+color-buddy, which was built as a design probe about linter interfaces rather
+than as a scoring system, and should not be cited as one.
 
 ## What the benchmark still needs
 
@@ -292,8 +323,9 @@ they no longer flip; that is itself part of the result.
 
 ## Done since the first draft
 
-- **Palettailor comparison**, **Colorgorical cross-scoring** and
-  **color-buddy validation** — above.
+- **Palettailor comparison**, **Colorgorical cross-scoring** and a
+  **color-buddy run**, reported as a robustness check under a different
+  threshold and simulation model rather than as validation — above.
 - **Human component.** Stated as out of scope in `bench/readme.md` (Caveats)
   and in the package readme's introduction, with the three human-grounded
   systems named.
