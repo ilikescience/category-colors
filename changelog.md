@@ -47,6 +47,23 @@
   axis this library still leads. At 22.6 this release also clears `okabeIto`
   (21.3) on the mean, though four of ten trials do not.
 
+### Added
+
+- **`petroff6`, `petroff8` and `petroff10`** join `palettes`. Petroff's
+  accessible colour cycles are the nearest published work to this library's
+  objective: minimum perceptual distance under simulated CVD, plus an explicit
+  minimum *lightness* separation for grayscale, plus an aesthetic-preference
+  model. They are the only other palettes in the comparison set with any
+  grayscale constraint, which makes them the comparison this library's claim
+  most needs to survive. Measured at eight colours, `petroff8` scores the best
+  worst-deficiency of any reference (11.1, against Okabe-Ito's 8.8) and a
+  grayscale minimum of 2.0 — better than every other reference and still well
+  below the 7.7 here.
+
+  Each length is optimized separately, so `petroff8` is not the first eight of
+  `petroff10`. The benchmark compares them only at their own length rather than
+  truncating, which is what it does with every other reference.
+
 ## 2.0.1
 
 ### Fixed

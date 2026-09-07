@@ -122,9 +122,19 @@ const generateOne = (colorCount, seed, namesWeight) =>
         return final.colors.map(String);
     });
 
+// Truncating a published palette assumes its author meant the first n to be
+// usable on their own, which is true of tableau20 and the rest. Petroff runs a
+// separate optimization per length -- petroff8 is not the first eight of
+// petroff10 -- so truncating one measures a palette nobody designed or ships.
+// These are compared only at the length they were built for.
+const EXACT_LENGTH_ONLY = new Set(['petroff6', 'petroff8', 'petroff10']);
+
 const referencePalettes = (colorCount) =>
     Object.entries(palettes)
-        .filter(([, colors]) => colors.length >= colorCount)
+        .filter(([name, colors]) =>
+            EXACT_LENGTH_ONLY.has(name)
+                ? colors.length === colorCount
+                : colors.length >= colorCount)
         .map(([name, colors]) => ({
             name,
             // Truncating rather than sampling: these palettes are published in

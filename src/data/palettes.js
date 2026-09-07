@@ -114,4 +114,54 @@ const okabeIto = [
     createColor('#000000'), // black
 ];
 
-export { observable10, d3category10, carbon, tableau10, tableau20, colorBrewer3_10, okabeIto };
+// Petroff's accessible colour cycles: minimum-perceptual-distance constraints
+// under simulated CVD, a minimum *lightness* separation for grayscale, and an
+// aesthetic-preference model trained on a survey. The nearest work to this
+// library's objective, and the only other palette here with an explicit
+// grayscale constraint.
+//
+// Unlike every other reference here, each length is optimized separately --
+// petroff8 is not the first eight of petroff10 -- so truncating one to compare
+// at another length measures a palette Petroff did not design. Use the entry
+// matching the colour count.
+//
+//   Petroff, M. A. "Accessible Color Sequences for Data Visualization." 2021.
+//   arXiv:2107.02270. Values quoted from the "Final results" section of
+//   github.com/mpetroff/accessible-color-cycles (MIT).
+const petroff6 = [
+    createColor('#5790fc'),
+    createColor('#f89c20'),
+    createColor('#e42536'),
+    createColor('#964a8b'),
+    createColor('#9c9ca1'),
+    createColor('#7a21dd'),
+];
+
+const petroff8 = [
+    createColor('#1845fb'),
+    createColor('#ff5e02'),
+    createColor('#c91f16'),
+    createColor('#c849a9'),
+    createColor('#adad7d'),
+    createColor('#86c8dd'),
+    createColor('#578dff'),
+    createColor('#656364'),
+];
+
+const petroff10 = [
+    createColor('#3f90da'),
+    createColor('#ffa90e'),
+    createColor('#bd1f01'),
+    createColor('#94a4a2'),
+    createColor('#832db6'),
+    createColor('#a96b59'),
+    createColor('#e76300'),
+    createColor('#b9ac70'),
+    createColor('#717581'),
+    createColor('#92dadd'),
+];
+
+export {
+    observable10, d3category10, carbon, tableau10, tableau20, colorBrewer3_10,
+    okabeIto, petroff6, petroff8, petroff10,
+};

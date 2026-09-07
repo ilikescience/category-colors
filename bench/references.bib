@@ -26,6 +26,10 @@
 % okabe2008cud is a web resource with no DOI or venue and so cannot be checked
 % the same way. Its title, authors and dates are quoted from the page itself.
 %
+% larsson2025qualpal was checked twice. It first carried CRAN's auto-minted
+% package DOI; CRAN advertises a JOSS paper as the preferred citation, and this
+% file now carries that instead, resolved and compared field by field.
+%
 % One field is left out on purpose. The ACM page for tseng2026catpaw gives
 % article number 1155, which Crossref does not carry and which could not be
 % read from dl.acm.org directly, so the entry cites only the page range.
@@ -68,28 +72,27 @@
              https://github.com/IAMkecheng/palettailor-library}
 }
 
-@software{larsson2025qualpal,
+@article{larsson2025qualpal,
   author  = {Larsson, Johan},
-  title   = {qualpalr: Automatic Generation of Qualitative Color Palettes},
-  year    = {2026},
-  version = {2.0.0},
-  doi     = {10.32614/CRAN.package.qualpalr},
-  url     = {https://github.com/jolars/qualpal},
-  note    = {Software, not a paper: maximises the minimum pairwise distance
-             over a sampled HSL box, with optional protan/deutan/tritan
-             adaptation. Cited because it is the closest competitor measured
-             in bench/ and the only other system there with any CVD handling.
-             PARTIALLY VERIFIED. Confirmed from the CRAN package page: author
-             and maintainer Johan Larsson (ORCID 0000-0002-4029-5945), R
-             package version 2.0.0 dated 29 January 2026, GPL-3, and the DOI
-             above, which is CRAN's own auto-minted package DOI rather than a
-             publication DOI. The C++ sources and the Python package built
-             from them at github.com/jolars/qualpal are MIT per that
-             repository, so the licence differs by artifact; the benchmark
-             uses the Python package, pinned to 1.1.0. NOT yet checked: the
-             citation CRAN advertises under ``qualpalr citation info'', which
-             may name a preferred reference this entry should be replaced by.
-             Check before submission.}
+  title   = {Qualpal: Qualitative Color Palettes for Everyone},
+  journal = {Journal of Open Source Software},
+  volume  = {10},
+  number  = {114},
+  pages   = {8936},
+  year    = {2025},
+  doi     = {10.21105/joss.08936},
+  issn    = {2475-9066},
+  url     = {https://joss.theoj.org/papers/10.21105/joss.08936},
+  note    = {Maximises the minimum pairwise distance over a sampled HSL box,
+             with optional protan/deutan/tritan adaptation. The closest
+             competitor measured in bench/ and the only other system there
+             with any CVD handling. Verified: this is the citation CRAN
+             advertises for the qualpalr package, and the DOI resolves to a
+             JOSS paper with matching title, author, volume, issue, article
+             number and year, published 16 October 2025. Licensing differs by
+             artifact -- the C++ sources and the Python package built from
+             them are MIT, the R package is GPL-3. The benchmark uses the
+             Python package, pinned to 1.1.0.}
 }
 
 @misc{petroff2021accessible,

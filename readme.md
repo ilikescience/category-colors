@@ -144,7 +144,7 @@ load it.
 
 - `createDefaultConfig()` / `createDefaultState()` — starting points to spread and edit.
 - `evaluators` — every evaluator, as an object, for building `evalFunctions` dynamically. Also exported individually (`energy`, `range`, `jnd`, `similarity`, `avoid`, `contrast`, `saliency`). `names` lives only at `category-colors/evaluators/names`.
-- `palettes` — established categorical palettes (`observable10`, `d3category10`, `carbon`, `tableau10`, `tableau20`, `colorBrewer3_10`, `okabeIto`) for comparison or as seeds.
+- `palettes` — established categorical palettes (`observable10`, `d3category10`, `carbon`, `tableau10`, `tableau20`, `colorBrewer3_10`, `okabeIto`, `petroff6`, `petroff8`, `petroff10`) for comparison or as seeds. Petroff optimizes each length separately, so `petroff8` is not the first eight of `petroff10`; take the one matching your color count.
 
 ### Color utilities
 
