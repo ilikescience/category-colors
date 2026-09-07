@@ -233,6 +233,52 @@ this one on every axis it models, and the only thing it does not model is
 print.** That is the claim that survives, and it is much narrower than
 "accessibility". Write it that way before a reviewer does it for you.
 
+## Petroff, measured
+
+Petroff [petroff2021accessible] is the nearest published work to this
+library's objective and, until now, the largest untested threat to its claim:
+it is the only other palette here built under an **explicit grayscale
+constraint**. `petroff6`, `petroff8` and `petroff10` are in `palettes`, quoted
+from the "Final results" of the author's repository (MIT).
+
+Unlike every other reference, each length is a separate optimization —
+`petroff8` is not the first eight of `petroff10` — so the benchmark compares
+them only at their own length instead of truncating.
+
+At eight colours:
+
+| | min ΔE | worst deficiency | grayscale | worst of all six |
+| --- | --- | --- | --- | --- |
+| category-colors 3.0 | 22.6 ± 1.6 | 13.7 ± 2.0 | **7.7 ± 0.3** | **7.7 ± 0.3** |
+| petroff8 | 20.0 | **11.1** | 2.0 | 2.0 |
+| okabeIto | 21.3 | 8.8 | 0.4 | 0.4 |
+| carbon | 12.8 | 5.0 | 2.5 | 2.5 |
+
+- **Petroff is the best reference palette on colour vision deficiency**, 11.1
+  against Okabe-Ito's 8.8 and roughly twice the next non-Okabe-Ito reference.
+  Its grayscale of 2.0 also beats every other reference. On the axis this
+  library claims, it is the closest thing to a peer in the published set.
+- **The grayscale claim survives, but narrowly and for a reason worth stating.**
+  2.0 against 7.7 is a real gap, but it is a difference of degree, not of kind:
+  Petroff *has* a lightness constraint and simply sets it low. The 8-colour
+  cycle was generated with `--min-light-dist 4.2`, a floor on CAM02-UCS
+  lightness separation, where this library minimizes a CIEDE2000 distance after
+  a luminance projection and pushes it to about 7.7. **Different quantity,
+  different threshold.** Do not write "Petroff does not handle grayscale"; write
+  that its constraint is a lower one, measured differently.
+- **This is the comparison to lead the related work with**, not Okabe-Ito.
+  Okabe-Ito is the palette reviewers ask about; Petroff is the one that shares
+  the objective, and beating it by 5.7 points of grayscale while losing 2.6 to
+  QualPal on plain separation is the honest shape of the result.
+
+Petroff also carries an aesthetic-preference model trained on a survey, which
+is a human-grounded term this library has nothing equivalent to — the same
+scope gap as Colorgorical's pair preference. Its numbers here are for one
+published palette, not a distribution: like QualPal it is a fixed artifact, and
+unlike QualPal it was never run as a generator, because the code takes several
+thousand CPU hours. That is a real limit on this comparison and should be
+disclosed rather than glossed.
+
 ## Colorgorical, cross-scored
 
 `node bench/run.js --colorgorical` runs Colorgorical's original Python code in
@@ -320,6 +366,9 @@ says otherwise:
   worst deficiency 21.8 against 13.7, with all ten of our trials below its
   figure. **Grayscale is the only axis with a structural gap**, because no
   other system measured has a luminance term at all.
+- Not that the grayscale gap is a difference of kind. Petroff constrains
+  lightness separation explicitly and reaches 2.0 against 7.7 here; the
+  distance is a lower threshold on a different quantity, not an absent one.
 - Not that any of this is validated by a third party. See the color-buddy
   section: that tool has been an input to these weights twice.
 
@@ -338,12 +387,19 @@ so beating them on it proves little. **Okabe & Ito's Color Universal Design
 set was**, and it is the palette a reviewer will ask about first. It is in the
 benchmark as `okabeIto`.
 
+It is no longer the toughest reference, though: `petroff8` beats it on worst
+deficiency, 11.1 against 8.8, and on grayscale, 2.0 against 0.4. Okabe-Ito is
+the comparison readers expect; Petroff is the one that presses hardest. Both
+belong in a write-up, in that order of prominence and the reverse order of
+difficulty.
+
 It is by some distance the best of the references:
 
 | | min ΔE | worst deficiency | grayscale |
 | --- | --- | --- | --- |
 | category-colors 3.0 | 22.6 ± 1.6 | 9.9 to 16.1 | **7.7** |
 | okabeIto | 21.3 | 8.8 | 0.4 |
+| petroff8 | 20.0 | **11.1** | 2.0 |
 | observable10 | 18.4 | 0.6 | 0.7 |
 | tableau10 | 18.1 | 3.2 | 0.5 |
 | d3category10 | 16.2 | 1.6 | 0.0 |

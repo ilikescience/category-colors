@@ -71,6 +71,13 @@ Two choices worth stating plainly, because both affect the comparison:
 - **Reference palettes are truncated, not sampled.** `tableau20` scored at 8
   colors is its first 8, because that is what someone using 8 of its colors
   gets. Sampling the best 8 of 20 would measure a palette nobody uses.
+  Truncated palettes are marked `*` in the table.
+- **Petroff is the exception, and is never truncated.** Petroff publishes a
+  separately optimized cycle per length, so `petroff8` is not the first eight
+  of `petroff10` and truncating one would measure a palette nobody designed or
+  ships. Each is compared only at its own length. It is also the reference that
+  presses hardest on this library's claim: it is the only other palette here
+  built under an explicit grayscale constraint. See `related-work.md`.
 
 ## Other generators
 
@@ -126,11 +133,13 @@ model. A higher minimum ΔE here is evidence that the optimizer separates colors
 well, not that the result is a better palette for every purpose. Any paper using
 these numbers should say so.
 
-The exception is `okabeIto`, which *was* designed for the thing this benchmark
-measures, and is therefore the comparison worth taking seriously. It posts the
-highest plain minimum ΔE of any palette here, including the generated ones, and
-much the best deficiency scores of any reference. Its weakness is grayscale,
-where orange and sky blue collide. `related-work.md` has the numbers.
+The exceptions are `okabeIto` and the `petroff` cycles, which *were* designed
+for the thing this benchmark measures, and are therefore the comparisons worth
+taking seriously. Okabe-Ito is the one readers expect; Petroff is the one that
+presses hardest, beating it on both deficiencies (11.1 against 8.8) and
+grayscale (2.0 against 0.4), and it is the only reference built under an
+explicit lightness constraint. Okabe-Ito's weakness is grayscale, where orange
+and sky blue collide at 0.4. `related-work.md` has the numbers.
 
 **No human judgment enters the benchmark or the objective.** Colorgorical,
 CatPAW, and Petroff each ground part of their objective in human ratings:
