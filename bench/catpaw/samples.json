@@ -1,0 +1,19 @@
+{
+  "tool": "CatPAW",
+  "url": "https://catpaw-categorical-palette.web.app/",
+  "captured": "2026-09-07",
+  "settings": {
+    "paletteType": "Color-only",
+    "categories": 8,
+    "shapePool": "All (unused in color-only mode)",
+    "mustIncludeColors": []
+  },
+  "method": "Read from the live tool's DOM after each Generate. See readme.md.",
+  "palettes": [
+    ["#244d00", "#eaa1e7", "#323b88", "#6a8283", "#e15d54", "#83f2c2", "#f4c649", "#23896c"],
+    ["#ece639", "#2c477e", "#445221", "#da3628", "#f7abe0", "#984a6c", "#94aabe", "#ef6a6a"],
+    ["#9a717b", "#d7a7d1", "#139779", "#84f5b9", "#583c76", "#ced88f", "#da3a17", "#935361"],
+    ["#a9afad", "#d4b92c", "#41377d", "#f35a29", "#f49679", "#96e1ae", "#e7ecae", "#9e6b99"],
+    ["#81697e", "#21416f", "#e5f144", "#e8552e", "#dc6a73", "#065632", "#e59bcd", "#e5bc25"]
+  ]
+}
