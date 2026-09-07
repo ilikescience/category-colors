@@ -1,6 +1,6 @@
 {
   "name": "category-colors",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Generate perceptually distinguishable color palettes for categorical data visualization using simulated annealing",
   "keywords": [
     "color",

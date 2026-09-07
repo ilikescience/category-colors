@@ -43,13 +43,19 @@ const carbon = [
     createColor('#a56eff'),
 ];
 
+// Tableau's own definition, via ggthemes' data-raw/theme-data/tableau.yml,
+// which carries Tableau's internal swatch names alongside the hexes. Tableau
+// publishes no hex list, so every implementation differs slightly: d3's
+// Tableau10 differs in four positions (including #edc949 for the yellow), and
+// Vega's `tableau10` is an entirely different palette. Don't "correct" these
+// against either.
 const tableau10 = [
     createColor('#4e79a7'),
     createColor('#f28e2b'),
     createColor('#e15759'),
     createColor('#76b7b2'),
     createColor('#59a14f'),
-    createColor('#edc949'),
+    createColor('#edc948'),
     createColor('#b07aa1'),
     createColor('#ff9da7'),
     createColor('#9c755f'),

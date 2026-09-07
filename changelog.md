@@ -1,5 +1,35 @@
 # Changelog
 
+## 3.0.1
+
+### Fixed
+
+- **`tableau10`'s yellow was `#edc949`; it is now `#edc948`.** Tableau
+  publishes no hex list — their KB article describes a method for extracting
+  the codes rather than giving them — so every implementation carries a
+  slightly different sample, and this one had drifted a digit. The value here
+  now follows Tableau's own definition as captured in ggthemes'
+  `data-raw/theme-data/tableau.yml`, which is the best-sourced version
+  available because it carries Tableau's internal swatch names alongside the
+  hexes; a screen-sampled palette does not come with those names attached.
+
+  **No benchmark number changes.** The benchmark truncates `tableau10` to its
+  first eight colors and the yellow sits at index 5, so this was inside the
+  measured set, but `tableau10`'s closest pair does not involve it: minimum ΔE
+  is 18.07 to nine decimal places either way. Mean ΔE moves by 0.017. The
+  `tableau10` row in `bench/related-work.md` stands as published.
+
+  `tableau20` is unaffected — it is the paired palette and carries `#b6992d`
+  and `#f1ce63` for its yellows.
+
+### Documentation
+
+- **`palettes.js` now records where the Tableau values come from.** The
+  correct yellow reads as a typo next to d3's, so the array carries a note
+  naming both traps: `d3-scale-chromatic`'s Tableau10 differs in four
+  positions (including `#edc949`), and Vega's `tableau10` is an entirely
+  different palette. Neither is a source to correct these against.
+
 ## 3.0.0
 
 ### Changed
