@@ -10,6 +10,7 @@ node bench/run.js --colors 10 --trials 20
 node bench/run.js --format json -o results.json
 node bench/run.js --names 0.5                  # add the name-difference term at weight 0.5
 node bench/run.js --palettailor                # also generate with Palettailor, same seeds
+node bench/run.js --qualpal                    # also generate with QualPal, two configurations
 node bench/run.js --colorgorical               # also score everything on Colorgorical's criteria (Docker)
 ```
 
@@ -80,6 +81,15 @@ GitHub at a pinned commit on first use rather than vendoring it; that readme
 also explains the synthetic data it is given, since Palettailor optimizes a
 palette for a specific chart and this benchmark has none.
 
+`--qualpal` generates with QualPal (Larsson) through its Python package, in two
+configurations: its own shipped defaults, and CVD adaptation on with the search
+box matched to this library's. It is deterministic and takes no seed, so each
+configuration contributes one palette rather than a distribution, and its rows
+are single values. **The runner deliberately bypasses QualPal's documented
+Python class, which in 1.1.0 accepts and validates `cvd`, `metric` and
+`background` and then discards them.** See [bench/qualpal](qualpal/readme.md);
+report the version with any number taken from it.
+
 `--colorgorical` scores every palette in the run, generated and reference, on
 Colorgorical's four criteria (Gramazio, Schloss & Laidlaw, 2017) by running its
 original Python code in Docker, and adds Colorgorical's own sample palettes as
@@ -102,7 +112,8 @@ rules (McNutt et al.). Those rules use a different threshold and a different
 CVD simulation model than this benchmark, so they are useful for asking
 whether a result depends on the choices made here. They are **not** an
 independent validation of the optimizer: an earlier run of them prompted a
-change to the default CVD weights, which makes them an input to the design.
+change to the default CVD weights, which makes them an input to the design, and
+the weights have since been tuned twice.
 See [bench/colorbuddy](colorbuddy/readme.md), and `related-work.md` for what
 the results do and do not support, including the rules this library fails.
 

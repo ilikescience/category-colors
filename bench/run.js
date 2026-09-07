@@ -29,7 +29,7 @@ import { withSeed } from './seed.js';
 const parseArgs = (argv) => {
     const options = {
         colors: 8, trials: 10, seed: 1, names: 0, palettailor: false, colorgorical: false,
-        format: 'text', output: null,
+        qualpal: false, format: 'text', output: null,
     };
 
     for (let i = 0; i < argv.length; i += 1) {
@@ -64,6 +64,7 @@ const parseArgs = (argv) => {
         if (arg === '--colors' || arg === '-n') options.colors = nextInt(arg, { min: 2 });
         else if (arg === '--names') options.names = nextNumber(arg, { min: 0 });
         else if (arg === '--palettailor') options.palettailor = true;
+        else if (arg === '--qualpal') options.qualpal = true;
         else if (arg === '--colorgorical') options.colorgorical = true;
         else if (arg === '--trials' || arg === '-t') options.trials = nextInt(arg, { min: 1 });
         else if (arg === '--seed' || arg === '-s') options.seed = nextInt(arg, { min: 0 });
@@ -86,6 +87,7 @@ const USAGE = `Usage: node bench/run.js [options]
   -s, --seed <n>     Base seed; trial i uses seed + i (default 1)
   --names <w>        Also optimize name difference, at this weight (default 0: off)
   --palettailor      Also generate palettes with Palettailor (downloads its sources once)
+  --qualpal          Also generate with QualPal, in two configurations (needs python3)
   --colorgorical     Score every palette on Colorgorical's criteria too, and include its
                      sample palettes if bench/colorgorical/samples.json exists (needs Docker)
   -f, --format <t>   text (default) or json
@@ -132,7 +134,9 @@ const referencePalettes = (colorCount) =>
         }));
 
 // Mean ± sd of every metric over one generator's trials, plus its best trial.
-const summarizeTrials = (generated) => {
+// `deterministic` marks a generator that returns one palette for a given
+// configuration, so a spread over its "trials" would describe nothing.
+const summarizeTrials = (generated, { deterministic = false } = {}) => {
     const scores = generated.map((g) => g.score);
     const best = generated.reduce((a, b) => (b.score.minDeltaE > a.score.minDeltaE ? b : a));
     return {
@@ -146,6 +150,7 @@ const summarizeTrials = (generated) => {
             CVD_CONDITIONS.map((c) => [c.label, aggregate(scores, (s) => s.cvd[c.label])])
         ),
         best: { seed: best.seed, colors: best.colors, score: best.score },
+        deterministic,
         trials: generated,
     };
 };
@@ -209,6 +214,19 @@ const colorgoricalSamples = (colorCount) => {
     );
 };
 
+// The generators present in a result, in report order. One QualPal run yields
+// two configurations, so this is the only place that knows how many rows a
+// generator contributes; adding another is one entry here rather than a new
+// name threaded through the scorer and every table.
+const generatorEntries = (result) =>
+    [
+        ['category-colors', result.generated],
+        ['qualpal', result.qualpal],
+        ['qualpal-defaults', result.qualpalDefaults],
+        ['palettailor', result.palettailor],
+        ['colorgorical', result.colorgorical],
+    ].filter(([, summary]) => summary);
+
 const run = async (options) => {
     const { colors: colorCount, trials, seed, names: namesWeight } = options;
 
@@ -243,6 +261,28 @@ const run = async (options) => {
         palettailor = summarizeTrials(runs);
     }
 
+    // QualPal is deterministic and takes no seed, so each configuration
+    // contributes exactly one palette rather than a distribution.
+    //
+    // Both rows use QualPal's own default colorspace and differ only in whether
+    // CVD adaptation is on, so the gap between them measures that one thing.
+    // An earlier version varied the box as well and credited the box's effect
+    // to CVD. bench/qualpal/readme.md carries the matched-box control, which is
+    // the separate question of how much of any gap is search space.
+    let qualpal = null;
+    let qualpalDefaults = null;
+    if (options.qualpal) {
+        const { generateQualpal, QUALPAL_DEFAULT_BOX, ALL_CVD } = await import('./qualpal/run.js');
+        const one = (cvd) => {
+            const colors = generateQualpal({ colorCount, cvd, colorspace: QUALPAL_DEFAULT_BOX });
+            return summarizeTrials([{ seed: null, colors, score: scorePalette(colors) }], {
+                deterministic: true,
+            });
+        };
+        qualpal = one(ALL_CVD);
+        qualpalDefaults = one(null);
+    }
+
     const references = available.map((entry) => ({
         ...entry,
         score: scorePalette(entry.colors),
@@ -251,15 +291,14 @@ const run = async (options) => {
     const result = {
         options: { colorCount, trials, seed, namesWeight },
         generated: summarizeTrials(generated),
+        qualpal,
+        qualpalDefaults,
         palettailor,
         colorgorical: options.colorgorical ? colorgoricalSamples(colorCount) : null,
         references,
     };
     if (options.colorgorical) {
-        attachColorgorical(
-            [result.generated, result.palettailor, result.colorgorical].filter(Boolean),
-            references
-        );
+        attachColorgorical(generatorEntries(result).map(([, summary]) => summary), references);
     }
     return result;
 };
@@ -273,13 +312,17 @@ const pad = (value, width, align = 'right') => {
 
 const num = (value, digits = 1) => value.toFixed(digits);
 
+// A statistic as `mean±sd`, or bare for a generator that only ever produces one
+// palette. Every table that prints a generator's numbers needs this decision,
+// so it lives in one place.
+const spread = (summary, stat, digits = 1) =>
+    summary.deterministic
+        ? num(stat.mean, digits)
+        : `${num(stat.mean, digits)}±${num(stat.sd, digits)}`;
+
 const formatText = (result) => {
-    const { options, generated, palettailor, colorgorical, references } = result;
-    const generators = [
-        ['category-colors', generated],
-        ['palettailor', palettailor],
-        ['colorgorical', colorgorical],
-    ].filter(([, summary]) => summary);
+    const { options, generated, references } = result;
+    const generators = generatorEntries(result);
     const lines = [];
 
     lines.push(
@@ -299,16 +342,20 @@ const formatText = (result) => {
         `${pad(uniformity, 8)}${pad(minCvd, 14)}${pad(minName, 12)}`;
 
     const generatorRows = (name, summary) => {
+        // A deterministic generator contributes one palette, so "± 0.0" would
+        // claim a stability it never measured and "best trial" would repeat the
+        // row above it. Print the single palette's scores plainly instead.
         lines.push(
             row(
                 name,
-                `${num(summary.minDeltaE.mean)}±${num(summary.minDeltaE.sd)}`,
-                `${num(summary.meanDeltaE.mean)}±${num(summary.meanDeltaE.sd)}`,
+                spread(summary, summary.minDeltaE),
+                spread(summary, summary.meanDeltaE),
                 num(summary.uniformity.mean, 3),
-                `${num(summary.minCvdDeltaE.mean)}±${num(summary.minCvdDeltaE.sd)}`,
-                `${num(summary.minNameDifference.mean, 2)}±${num(summary.minNameDifference.sd, 2)}`
+                spread(summary, summary.minCvdDeltaE),
+                spread(summary, summary.minNameDifference, 2)
             )
         );
+        if (summary.deterministic) return;
         lines.push(
             row(
                 '  best trial',
@@ -352,9 +399,11 @@ const formatText = (result) => {
     lines.push('─'.repeat(60));
     for (const condition of CVD_CONDITIONS) {
         const parts = [`${pad(condition.label, 20, 'left')}`];
-        parts.push(`generated ${pad(num(generated.cvd[condition.label].mean), 6)}`);
-        if (palettailor) {
-            parts.push(`   palettailor ${pad(num(palettailor.cvd[condition.label].mean), 6)}`);
+        // Every generator that ran, not a hardcoded two: this block is the only
+        // place the per-condition argument is visible, and the grayscale row is
+        // what the whole comparison turns on.
+        for (const [name, summary] of generators) {
+            parts.push(`${name} ${pad(num(summary.cvd[condition.label].mean), 6)}  `);
         }
         const worst = references.reduce(
             (a, b) => (b.score.cvd[condition.label] < a.score.cvd[condition.label] ? b : a)
@@ -379,8 +428,8 @@ const formatText = (result) => {
                     Object.fromEntries(
                         COLORGORICAL_CRITERIA.map(({ key }) => [
                             key,
-                            `${num(summary.colorgorical[key].mean, key === 'nd' || key === 'nu' ? 2 : 1)}` +
-                            `±${num(summary.colorgorical[key].sd, key === 'nd' || key === 'nu' ? 2 : 1)}`,
+                            spread(summary, summary.colorgorical[key],
+                                key === 'nd' || key === 'nu' ? 2 : 1),
                         ])
                     )
                 )
@@ -405,7 +454,13 @@ const formatText = (result) => {
 
     lines.push('');
     for (const [name, summary] of generators) {
-        lines.push(`Best ${name} palette (seed ${summary.best.seed}):`);
+        // A deterministic generator has no seed and only one palette, so
+        // "best" and a seed number would both misdescribe it.
+        lines.push(
+            summary.deterministic
+                ? `${name} palette (deterministic):`
+                : `Best ${name} palette (seed ${summary.best.seed}):`
+        );
         lines.push(`  ${summary.best.colors.join(' ')}`);
     }
 
