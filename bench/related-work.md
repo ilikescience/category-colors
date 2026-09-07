@@ -39,9 +39,12 @@ is also the most available: on PyPI, CRAN and the web, MIT as C++ and
 Python, GPL-3 as the R package. It has no
 luminance or grayscale term, so print is outside its scope. Measured below.
 
-**CatPAW** [tseng2026catpaw] derives palettes from four crowdsourced experiments
-on redundant colour–shape encoding. Newest of the group and from Szafir's lab;
-worth reading before submitting anything.
+**CatPAW** [tseng2026catpaw] derives palettes from four crowdsourced
+experiments on redundant colour–shape encoding, and is the only system here
+grounded in measured task *accuracy* rather than preference or distance. Its
+finding is that colour-and-shape together beats either alone at five to eight
+categories, so its colour-only mode is the one it argues against. A web tool,
+no code release. Measured below, with the caveats that implies.
 
 ### Perceptual foundations
 
@@ -278,6 +281,50 @@ published palette, not a distribution: like QualPal it is a fixed artifact, and
 unlike QualPal it was never run as a generator, because the code takes several
 thousand CPU hours. That is a real limit on this comparison and should be
 disclosed rather than glossed.
+
+## CatPAW, measured on terms it does not claim
+
+CatPAW [tseng2026catpaw] is the newest neighbour and the last one unmeasured.
+Five colour-only eight-colour palettes are recorded in
+`bench/catpaw/samples.json`, captured by hand from the authors' web tool;
+`bench/catpaw/readme.md` explains why there is no runner and what the sample
+is not.
+
+| | min ΔE | worst deficiency | grayscale | worst of all six |
+| --- | --- | --- | --- | --- |
+| category-colors 3.0 | 22.6 ± 1.6 | 13.7 ± 2.0 | 7.7 ± 0.3 | 7.7 ± 0.3 |
+| catpaw, colour-only | 14.3 ± 2.2 | 6.4 ± 1.4 | 0.8 ± 0.6 | 0.8 ± 0.6 |
+
+**These numbers are not a comparison of quality, and the paper should say so in
+the same breath it gives them.** CatPAW's model comes from four crowdsourced
+experiments on *task accuracy*, and its central claim is that redundant
+colour-**and-shape** encoding beats either channel alone at five to eight
+categories. Colour-only is the mode its own authors argue against. This
+benchmark has no shape channel and no accuracy measure, so it cannot evaluate
+what CatPAW optimizes. Scoring it here is like scoring Palettailor without
+data, only more so.
+
+Three things the measurement does support:
+
+- **It selects from a fixed pool of 39 colours**, the set used in the authors'
+  experiments (the tool's `colors.js`, confirmed by the output element ids
+  indexing into it). A palette drawn from 39 fixed points cannot spread as far
+  as one searching a continuous space, which bounds `minDeltaE` by
+  construction rather than by any choice about accessibility.
+- **Nothing in it models colour vision deficiency or print.** Worst case across
+  conditions is 0.8, and one of the five palettes contains a pair that
+  vanishes completely under some condition (0.0). If a reader needs the palette
+  to survive simulation, CatPAW as it stands does not provide that, and does
+  not claim to.
+- **It is the only system here grounded in measured human performance rather
+  than preference.** Colorgorical models what people *like*; CatPAW models what
+  people get *right*. That is the more interesting scope gap for this library,
+  which models neither.
+
+The honest framing: CatPAW and this library answer different questions, and the
+comparison worth making is not ΔE but whether palettes optimized for perceptual
+distance also support the class-level judgements CatPAW's experiments measure.
+That is an empirical question this benchmark cannot answer.
 
 ## Colorgorical, cross-scored
 
@@ -535,8 +582,6 @@ than as a scoring system, and should not be cited as one.
 
 ## What the benchmark still needs
 
-- **A manual pass on the three citations with no DOI**, named in the header
-  of `references.bib`.
 - **Decide whether 3.0's weights are where the paper wants to stand.** They
   buy 3.6 points of unimpaired separation (19.0 to 22.6) for 0.2 of worst-case
   (7.9 to 7.7) on our own measurements — but two of ten palettes now fail
@@ -549,14 +594,25 @@ than as a scoring system, and should not be cited as one.
   palette per configuration. Varying `colorspace_size` and the box would show
   whether 24.7 is a stable property or a lucky grid, and it is the first thing
   a reviewer who knows the tool will ask.
-- **Resolve the `qualpalr` citation.** `references.bib` carries a CRAN package
-  DOI; CRAN also advertises a preferred citation that has not been read yet.
-- **Petroff and CatPAW are still unmeasured.** Petroff is the closer gap: it
-  optimizes grayscale explicitly, which is the one axis this work is now
-  claiming, so it is the strongest untested threat to the central claim.
+- **Both remaining neighbours are now measured, and both carry asterisks.**
+  Petroff's palettes were scored as published artifacts rather than
+  regenerated, because generating them takes several thousand CPU hours.
+  CatPAW was captured by hand from its web tool — five palettes rather than ten
+  seeded trials — and scored on an axis it does not claim. Neither is as solid
+  as the Palettailor, QualPal or Colorgorical comparisons. Label them as weaker
+  evidence wherever they appear.
+- **The comparison this benchmark cannot make.** CatPAW measures task accuracy
+  under redundant colour-shape encoding; Colorgorical and Petroff both model
+  human preference. This library models neither. `bench/readme.md` states that
+  as a scope choice, but three of the five neighbours now carry a
+  human-grounded term, which starts to look less like a scope choice and more
+  like the direction of the field.
 
 ## Done since the first draft
 
+- **Petroff and CatPAW measured**, closing the last two gaps in the neighbour
+  set — Petroff as published palettes now in `palettes`, CatPAW as a recorded
+  sample in `bench/catpaw` with the category error stated up front.
 - **QualPal comparison** (`bench/qualpal`), in two configurations, after
   finding that its Python package silently drops every option including `cvd` —
   see that runner's readme. It is the strongest competitor measured and it

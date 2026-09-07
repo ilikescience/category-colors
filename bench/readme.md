@@ -141,6 +141,13 @@ grayscale (2.0 against 0.4), and it is the only reference built under an
 explicit lightness constraint. Okabe-Ito's weakness is grayscale, where orange
 and sky blue collide at 0.4. `related-work.md` has the numbers.
 
+`bench/catpaw` holds five colour-only palettes captured from CatPAW's web
+tool (Tseng et al.), with no runner: the tool has no code release and one
+generation takes the better part of a minute in a browser. Its numbers come
+with a larger caveat than any other comparison here — CatPAW optimizes task
+accuracy under redundant colour-**and-shape** encoding, which this benchmark
+has no way to measure — so read that directory's readme before quoting them.
+
 **No human judgment enters the benchmark or the objective.** Colorgorical,
 CatPAW, and Petroff each ground part of their objective in human ratings:
 pair preference, crowdsourced discriminability, or aesthetic screening. This
