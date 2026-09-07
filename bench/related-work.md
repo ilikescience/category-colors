@@ -51,9 +51,12 @@ generate them. See the section below on why that distinction matters.
 
 ### Reference palettes
 
-ColorBrewer [harrower2003colorbrewer], Tableau, d3, Observable, and Carbon are
-the benchmark's comparison set. Each was designed under constraints the
-benchmark does not model, which `bench/readme.md` already states.
+ColorBrewer [harrower2003colorbrewer], Tableau, d3, Observable, Carbon and
+Okabe-Ito [okabe2008cud] are the benchmark's comparison set. Most were designed
+under constraints the benchmark does not model, which `bench/readme.md` states.
+Okabe-Ito is the exception and the one that matters: it was built to stay
+legible under color vision deficiency, which is the axis this library claims.
+See "The comparison that matters" below.
 
 ## Where this library actually sits
 
@@ -237,11 +240,55 @@ are also ours. A reviewer's first move will be to ask whether the result is an
 artifact of picking them, so the next two sections answer that directly rather
 than waiting for the question.
 
+## The comparison that matters: Okabe-Ito
+
+Most reference palettes were never trying to survive color vision deficiency,
+so beating them on it proves little. **Okabe & Ito's Color Universal Design
+set was**, and it is the palette a reviewer will ask about first. It is in the
+benchmark as `okabeIto`.
+
+It is by some distance the best of the references, and it beats this library
+where this library is weakest:
+
+| | min ΔE | worst deficiency | grayscale |
+| --- | --- | --- | --- |
+| okabeIto | **21.3** | 8.8 | 0.4 |
+| category-colors | 19.0 ± 1.5 | 12.5 to 16.4 | 7.9 |
+| carbon | 12.8 | 5.0 | 2.5 |
+| tableau10 | 18.1 | 3.2 | 0.5 |
+| observable10 | 18.4 | 0.6 | 0.7 |
+| colorBrewer3_10 | 13.7 | 1.9 | 0.1 |
+| d3category10 | 16.2 | 1.6 | 0.0 |
+| tableau20 | 12.6 | 0.6 | 0.8 |
+
+Three readings, and the first is not in our favour:
+
+- **Okabe-Ito has the highest plain minimum ΔE of anything measured here**,
+  21.3, above this library's ten-trial mean of 19.0 and above its best trial of
+  21.6 only barely. A hand-designed palette from 2008 beats the optimizer on
+  the headline number. Say so.
+- **On the deficiencies the optimizer is still ahead, without overlap.** Worst
+  case across the five deficiency conditions, our ten palettes run 12.5 to
+  16.4 against Okabe-Ito's 8.8. It is roughly twice as good as the next
+  reference (carbon at 5.0), which is exactly what a palette designed for the
+  purpose should look like, and we are roughly 1.4 to 1.9 times better again.
+- **Okabe-Ito is not safe in grayscale**, at 0.4. The collision is orange
+  `#e69f00` against sky blue `#56b4e9`, two colors of nearly equal luminance,
+  and it is not an artifact of the gray swatch: the seven chromatic colors
+  alone score the same. Photocopy an Okabe-Ito figure and two categories merge.
+  That is a real gap and it is the one this library's grayscale term closes,
+  7.9 against 0.4.
+
+The honest summary is that Okabe-Ito wins on unaided separation, this library
+wins on every simulated condition, and the gap on grayscale is large enough to
+matter for print.
+
 ## The result does not depend on the threshold
 
-The strongest evidence is threshold-free. Take each palette's **worst pair
-under any simulated condition** — the number that decides whether a reader
-confuses two categories — over ten trials at eight colors:
+The evidence above is also threshold-free, which is worth making explicit.
+Take each palette's **worst pair under any simulated condition** — the number
+that decides whether a reader confuses two categories — over ten trials at
+eight colors:
 
 | | worst pair per palette, sorted |
 | --- | --- |
@@ -249,12 +296,14 @@ confuses two categories — over ten trials at eight colors:
 | palettailor | 0.2 0.2 0.3 0.4 0.4 1.3 1.6 1.6 2.6 3.4 |
 | colorgorical | 0.2 0.3 0.5 0.8 0.8 0.9 1.0 1.1 1.1 2.6 |
 
-**The distributions do not overlap.** Any cutoff between 3.4 and 7.0 separates
-them completely, so the ranking survives any reasonable choice of threshold,
-including ones chosen by someone hostile to it. Ten of ten Palettailor
-palettes and ten of ten Colorgorical palettes contain a pair below ΔE 5 under
-some condition; eight and nine of ten respectively fall below 2, which is two
-colors nobody can tell apart. None of ours falls below 7.
+**The distributions do not overlap**, and neither do they against Okabe-Ito
+once grayscale is excluded to compare like with like: 12.5 to 16.4 against 8.8.
+Any cutoff between 3.4 and 7.0 separates the generators completely, so the
+ranking survives any reasonable choice of threshold, including one chosen by
+someone hostile to it. Ten of ten Palettailor palettes and ten of ten
+Colorgorical palettes contain a pair below ΔE 5 under some condition; eight
+and nine of ten respectively fall below 2, which is two colors nobody can tell
+apart. None of ours falls below 7.
 
 This is also the number to quote rather than a count of failing pairs, because
 a count says something different and weaker. Counting pairs below 20, out of

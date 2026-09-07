@@ -144,7 +144,7 @@ load it.
 
 - `createDefaultConfig()` / `createDefaultState()` — starting points to spread and edit.
 - `evaluators` — every evaluator, as an object, for building `evalFunctions` dynamically. Also exported individually (`energy`, `range`, `jnd`, `similarity`, `avoid`, `contrast`, `saliency`). `names` lives only at `category-colors/evaluators/names`.
-- `palettes` — established categorical palettes (`observable10`, `d3category10`, `carbon`, `tableau10`, `tableau20`, `colorBrewer3_10`) for comparison or as seeds.
+- `palettes` — established categorical palettes (`observable10`, `d3category10`, `carbon`, `tableau10`, `tableau20`, `colorBrewer3_10`, `okabeIto`) for comparison or as seeds.
 
 ### Color utilities
 

@@ -92,4 +92,26 @@ const colorBrewer3_10 = [
     createColor('#bc80bd'),
 ];
 
-export { observable10, d3category10, carbon, tableau10, tableau20, colorBrewer3_10 };
+// Okabe & Ito's "Color Universal Design" set, the reference palette designed
+// specifically to stay distinguishable under color vision deficiency. Their
+// paper publishes the swatches as an image rather than as values, so these hex
+// codes are the community's digitisation; they are identical in Claus Wilke's
+// colorblindr (palette_OkabeIto) and in ggokabeito, which is the order used
+// here. The first eight are exactly colorblindr's eight-colour variant.
+//
+//   Okabe, M. and Ito, K. "Color Universal Design (CUD): How to Make Figures
+//   and Presentations That Are Friendly to Colorblind People." 2008.
+//   https://jfly.uni-koeln.de/color/
+const okabeIto = [
+    createColor('#e69f00'), // orange
+    createColor('#56b4e9'), // sky blue
+    createColor('#009e73'), // bluish green
+    createColor('#f0e442'), // yellow
+    createColor('#0072b2'), // blue
+    createColor('#d55e00'), // vermillion
+    createColor('#cc79a7'), // reddish purple
+    createColor('#999999'), // gray
+    createColor('#000000'), // black
+];
+
+export { observable10, d3category10, carbon, tableau10, tableau20, colorBrewer3_10, okabeIto };

@@ -115,6 +115,12 @@ model. A higher minimum ΔE here is evidence that the optimizer separates colors
 well, not that the result is a better palette for every purpose. Any paper using
 these numbers should say so.
 
+The exception is `okabeIto`, which *was* designed for the thing this benchmark
+measures, and is therefore the comparison worth taking seriously. It posts the
+highest plain minimum ΔE of any palette here, including the generated ones, and
+much the best deficiency scores of any reference. Its weakness is grayscale,
+where orange and sky blue collide. `related-work.md` has the numbers.
+
 **No human judgment enters the benchmark or the objective.** Colorgorical,
 CatPAW, and Petroff each ground part of their objective in human ratings:
 pair preference, crowdsourced discriminability, or aesthetic screening. This

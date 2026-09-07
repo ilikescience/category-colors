@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.0.1
+
+### Fixed
+
+- **The shipped type declarations omitted `grayscale`.** 2.0.0 added a
+  `grayscale` simulation and a default config that uses it, but `CvdType` in
+  `index.d.ts` still listed only the six deficiencies, so the package's own
+  `createDefaultConfig()` did not typecheck against its own types and any
+  TypeScript caller passing `'grayscale'` got TS2322. Runtime was never
+  affected.
+
+  `CvdType` keeps its six deficiencies, because grayscale is not one. The new
+  `SimulationType` is `CvdType | 'grayscale'` and is what `simulateCvd` and
+  `CvdSimulation.type` now accept. Both are re-exported from
+  `category-colors/report`.
+
+  Tests now cross-check the declarations against the runtime, so a simulation
+  the code accepts but the types omit fails the suite.
+
+### Added
+
+- **`okabeIto`** joins `palettes`. Okabe & Ito's Color Universal Design set is
+  the reference palette actually designed to survive color vision deficiency,
+  which makes it the comparison worth making. Nine colors, in the ggokabeito
+  order, so the first eight match Wilke's colorblindr variant.
+
+### Documentation
+
+- `CvdSimulation.severity` now says that only `1` is meaningful for
+  `'grayscale'`. A half-desaturated palette is not something anything prints,
+  so a fraction there models nothing. The shared field invites `0.5`, which is
+  reasonable for a deficiency and meaningless here.
+
 ## 2.0.0
 
 ### Changed

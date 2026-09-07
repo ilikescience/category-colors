@@ -58,6 +58,7 @@ export interface ColorMeta {
  */
 export type Color = CulorMap & ColorMeta;
 
+/** The color vision deficiencies, simulated with culori's Machado et al. filters. */
 export type CvdType =
   | 'protanomaly'
   | 'protanopia'
@@ -66,9 +67,20 @@ export type CvdType =
   | 'tritanomaly'
   | 'tritanopia';
 
+/**
+ * Everything `simulateCvd` accepts. `'grayscale'` is not a deficiency: it is
+ * culori's luminance projection, standing in for print and photocopying.
+ */
+export type SimulationType = CvdType | 'grayscale';
+
 export interface CvdSimulation {
-  type: CvdType;
-  /** 0 (unaffected) to 1 (full dichromacy). */
+  type: SimulationType;
+  /**
+   * 0 (unaffected) to 1 (full dichromacy).
+   *
+   * Only `1` is meaningful for `'grayscale'`: a partly desaturated palette is
+   * not something anything prints, so a fraction there models nothing.
+   */
   severity: number;
 }
 
@@ -188,8 +200,8 @@ export function cost(state: State, config: Config): number;
 /** Same computation as `cost`, itemized in `config.evalFunctions` order. */
 export function costBreakdown(state: State, config: Config): EvaluatorCost[];
 
-/** Returns a copy of `state` with each color passed through a CVD filter. */
-export function simulateCvd(state: State, type: CvdType, severity: number): State;
+/** Returns a copy of `state` with each color passed through a simulation filter. */
+export function simulateCvd(state: State, type: SimulationType, severity: number): State;
 
 // ── Configuration ───────────────────────────────────────────────────────────
 

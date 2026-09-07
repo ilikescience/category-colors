@@ -23,6 +23,9 @@
 % arXiv's own, registered through DataCite, and resolves with a matching title
 % and author. Drop it if the target venue objects to preprint DOIs.
 %
+% okabe2008cud is a web resource with no DOI or venue and so cannot be checked
+% the same way. Its title, authors and dates are quoted from the page itself.
+%
 % One field is left out on purpose. The ACM page for tseng2026catpaw gives
 % article number 1155, which Crossref does not carry and which could not be
 % read from dl.acm.org directly, so the entry cites only the page range.
@@ -235,6 +238,24 @@
 }
 
 % ── Reference palettes used in the benchmark ────────────────────────────────
+
+@misc{okabe2008cud,
+  author       = {Okabe, Masataka and Ito, Kei},
+  title        = {Color Universal Design ({CUD}): How to Make Figures and
+                  Presentations That Are Friendly to Colorblind People},
+  year         = {2008},
+  howpublished = {\url{https://jfly.uni-koeln.de/color/}},
+  note         = {Dated 20 November 2002 on the page itself, modified 15
+                  February and 24 September 2008; cited by the later date, as
+                  is conventional. Web resource with no DOI or venue, so it is
+                  not machine-checkable like the rest of this file; the title,
+                  authors and dates above are quoted from the page. The
+                  palette's swatches are published as an image rather than as
+                  values, so the hex codes in src/data/palettes.js are the
+                  community digitisation, identical in Wilke's colorblindr and
+                  in ggokabeito. The original host, jfly.iam.u-tokyo.ac.jp, now
+                  redirects to the Cologne mirror.}
+}
 
 @article{harrower2003colorbrewer,
   author  = {Harrower, Mark and Brewer, Cynthia A.},

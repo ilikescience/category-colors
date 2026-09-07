@@ -5,6 +5,7 @@ export {
   type JndReport,
   type JndReportOptions,
   type CvdType,
+  type SimulationType,
   type CvdSimulation,
   type ColorInput,
   type ColorMode,
