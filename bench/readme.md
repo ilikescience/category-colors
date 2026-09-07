@@ -27,13 +27,24 @@ this library sits within it, and what the comparison still needs;
 | `minDeltaE` | The headline number. A categorical palette is only as good as its closest pair, because that pair is the one a reader actually confuses. |
 | `meanDeltaE` | Average separation. Useful context, but a high mean hides a bad minimum. |
 | `uniformity` | Coefficient of variation across all pairwise distances. Lower means no pair is disproportionately close or far. |
-| `minDeltaE` per CVD condition | The same minimum after simulating each deficiency. Deuteranomaly at 0.5 severity is the most common case; the dichromacies are the worst case. |
+| `minDeltaE` per condition | The same minimum after simulating each deficiency. Deuteranomaly at 0.5 severity is the most common case; the dichromacies are the worst case. `grayscale` stands in for print. |
 | `minNameDifference` / `meanNameDifference` | Heer & Stone name difference, `1 - cosine` of two colors' naming vectors, for the closest-named pair and on average. 0 means two colors get the same name. This is the term Colorgorical and Palettailor optimize, so it scores every palette on their axis too. |
 | `minContrastWhite` / `minContrastBlack` | WCAG 2.1 contrast of the least-contrasting swatch against each background. |
 
-Distances are CIEDE2000 in CIELAB D65. CVD simulation uses culori's filters,
-which implement Machado et al. (2009). Name data is built from the c3
-repository by `bench/buildNameData.js`, which documents its truncation.
+Distances are CIEDE2000 in CIELAB D65.
+
+**Every CVD number is relative to the model that produced it, so the model is
+named wherever the numbers are.** The five deficiency conditions use culori's
+filters, which implement Machado, Oliveira and Fernandes (2009). The
+`grayscale` condition is culori's luminance projection, the matrix behind CSS
+`filter: grayscale()`; it stands in for printing and photocopying and is not a
+physiological model of achromatopsia. This matters in practice: color-buddy's
+lint rules simulate the same deficiencies with a different model, an LMS-matrix
+dichromacy from `@bjornlu/colorblind`, and the two disagree near their
+thresholds. A pair measuring 12.45 here can measure 8.78 there.
+
+Name data is built from the c3 repository by `bench/buildNameData.js`, which
+documents its truncation.
 
 ## Method
 

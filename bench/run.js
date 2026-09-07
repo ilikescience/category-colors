@@ -346,7 +346,9 @@ const formatText = (result) => {
     }
 
     lines.push('');
-    lines.push('Minimum ΔE per CVD condition');
+    lines.push('Minimum ΔE per condition');
+    lines.push('  deficiencies simulated with culori\'s filters (Machado et al. 2009);');
+    lines.push('  grayscale is a luminance projection, not a model of anyone\'s vision.');
     lines.push('─'.repeat(60));
     for (const condition of CVD_CONDITIONS) {
         const parts = [`${pad(condition.label, 20, 'left')}`];

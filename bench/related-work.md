@@ -132,21 +132,27 @@ is a stronger move than arguing with it.
 the same seeds (see `bench/palettailor/readme.md` for how it is fed data it
 was never designed to run without). At 8 colours, ten trials, seed 1:
 
-- Palettailor reaches a slightly *higher* minimum ΔE (26.6 ± 2.4 against
-  23.8 ± 1.1), because it searches lightness 35–95 and any chroma, while the
-  default config here confines the search to a mid-range okhsl box. Its
-  variance is twice as large.
-- Under simulated CVD its minimum ΔE drops to 4.5 ± 1.7 against 7.4 ± 2.3 —
-  under deuteranopia 5.8 against 8.9, protanopia 9.2 against 11.7 — which puts
-  it in the range of the hand-designed reference palettes (0.6 to 5.0).
-  Palettailor has no CVD term at all.
-- On name difference the two are indistinguishable (0.34 ± 0.16 against
-  0.36 ± 0.13) even though it is one of Palettailor's three objectives and
-  absent from the default config here. With `--names 0.5` this library reaches
-  0.53 ± 0.13 for a 0.2 ΔE change on the closest pair, i.e. within noise.
+- **Palettailor wins on plain minimum ΔE**, 26.6 ± 2.4 against 19.0 ± 1.5, and
+  the gap widened when the defaults here took on the CVD terms. It searches
+  lightness 35–95 and any chroma while this config works a mid-range okhsl box
+  and now spends much of its budget on four simulated conditions. State this
+  plainly rather than burying it.
+- **It loses badly the moment any deficiency is simulated.** Worst case across
+  every condition: 1.2 ± 1.1 against 7.9 ± 0.3. Under deuteranopia 5.8 against
+  16.1, protanopia 9.2 against 16.2, tritanopia 10.5 against 17.2, grayscale
+  1.2 against 7.9. Palettailor has no CVD term at all, and its numbers sit
+  among the hand-designed reference palettes.
+- **On name difference Palettailor is now ahead**, 0.34 ± 0.16 against
+  0.16 ± 0.12. It optimizes name difference and this config does not, and the
+  CVD terms cost it: the same measurement was 0.36 before they were added.
+  `--names 0.5` recovers it, and the paper should either enable that term or
+  concede the point.
 
-So the CVD claim survives contact with the closest competitor, and it is the
-only one of the three that does. Two caveats to carry into the paper: the
+So the trade is explicit: this library gives up plain separation and
+nameability to hold every simulated condition above 7.9, where the closest
+competitor drops to 1.2. Whether that is the right trade depends on the
+reader's audience, which is an argument worth making directly rather than
+winning on a single column. Two further caveats: the
 lightness-range difference means the plain min-ΔE comparison is partly a
 comparison of search spaces, not search methods; and Palettailor's annealing
 schedule accepts nearly every move for the first 60% of its run, so it is
@@ -161,16 +167,24 @@ its four criteria, each the minimum over pairs. Same run as above:
 
 | | ΔE | name diff | pair pref | name uniq |
 | --- | --- | --- | --- | --- |
-| category-colors | 24.0 ± 1.5 | 0.61 ± 0.08 | −58 ± 10 | 0.52 ± 0.08 |
+| category-colors | 18.6 ± 2.2 | 0.50 ± 0.10 | −44 ± 6 | 0.57 ± 0.08 |
 | palettailor | 26.6 ± 2.8 | 0.63 ± 0.13 | −67 ± 8 | 0.27 ± 0.10 |
 | colorgorical (own samples) | 15.8 ± 3.2 | 0.45 ± 0.07 | −23 ± 9 | 0.41 ± 0.11 |
 | best reference | 19.7 (observable10) | 0.70 (d3) | −13 (tableau20) | 0.59 (ColorBrewer) |
 
 And the reverse direction, Colorgorical's ten 8-colour sample palettes at its
 all-equal slider setting scored on this benchmark's metrics: minimum ΔE
-15.8 ± 3.3 (against 23.8 here), minimum ΔE under CVD 4.1 ± 1.6 (against 7.4),
-and cosine name difference 0.09 ± 0.06 (against 0.36) — its closest-named
-pair is usually two shades of the same name.
+15.8 ± 3.3 against 19.0 here, worst case across every simulated condition
+0.9 ± 0.6 against 7.9 ± 0.3, and cosine name difference 0.09 ± 0.06 against
+0.16 — its closest-named pair is usually two shades of the same name.
+
+Note that this library's Colorgorical scores moved when its defaults took on
+the CVD terms, and not all in one direction: ΔE fell from 24.0 to 18.6 and
+name difference from 0.61 to 0.50, while pair preference improved from −58 to
+−44 and name uniqueness from 0.52 to 0.57. Spreading lightness evenly appears
+to help on the two criteria grounded in human ratings, which is a happy
+accident rather than something the objective asked for, and should be
+described as one.
 
 Three things to know before quoting these:
 
@@ -180,14 +194,15 @@ Three things to know before quoting these:
   `names` evaluator use, `1 - cosine`. Same data, different metric, and the
   two rank palettes differently (carbon scores 0.11 on cosine and 0.60 on
   Hellinger). The paper should say which it means and never mix the columns.
-- **Pair preference is where human judgment lives**, and it is the one
-  criterion Colorgorical clearly wins (−23 against −58 and −67): its samples
-  are selected on it, and neither this library nor Palettailor models it at
-  all. It buys that with a minimum ΔE of 15.8, below every generated palette
-  here and below three of the six references. That is the scope disclaimer in
-  numbers: this library trades preference for discriminability, on purpose.
+- **Pair preference is where human judgment lives**, and Colorgorical still
+  wins it (−23 against −44 and −67): its samples are selected on it, and
+  neither this library nor Palettailor models it at all. It buys that with a
+  minimum ΔE of 15.8, and a worst-case-across-conditions of 0.9. That is the
+  scope disclaimer in numbers: this library trades preference for
+  discriminability, on purpose.
 - **Name uniqueness is the `saliency` quantity**, and this library scores well
-  on it *without* optimizing it (0.52, second only to ColorBrewer), because the
+  on it *without* optimizing it (0.57, the best of any palette measured here,
+  reference palettes included), because the
   jnd terms push colours apart and apart tends to mean prototypical. The
   `saliency` evaluator now returns `1 - mean saliency`, so enabling it pushes
   the same way this column measures; before that fix it inverted the criterion
@@ -215,74 +230,65 @@ eight near-identical colors fails only 13. A metric that separates a good
 palette from a deliberately terrible one by three points is not a quality
 measure.
 
-The rule identities, over ten generated palettes at seed 1 and the six
-reference palettes truncated to eight colors:
+The rule identities, over ten generated palettes and the six reference
+palettes truncated to eight colors:
 
 | rule | generated | references |
 | --- | --- | --- |
-| `cvd-friendly-protanopia` | 7/10 pass | 0/6 pass |
-| `cvd-friendly-deuteranopia` | 4/10 pass | 1/6 pass (carbon) |
-| `cvd-friendly-tritanopia` | 2/10 pass | 0/6 pass |
+| `cvd-friendly-protanopia` | 10/10 pass | 0/6 pass |
+| `cvd-friendly-deuteranopia` | 10/10 pass | 1/6 pass (carbon) |
+| `cvd-friendly-tritanopia` | 8/10 pass | 0/6 pass |
 | `cvd-friendly-grayscale` | 0/10 pass | 0/6 pass |
 | `mutually-distinct` | 10/10 pass | fails only for the control |
 | `color-name-discriminability` | 10/10 pass | fails only for the control |
-| `even-colors-lightness` | 1/10 pass | — |
+| `even-colors-lightness` | 10/10 pass | — |
 | `fair-nominal` | 0/10 pass | — |
 
-Four things follow, and the third and fourth are the ones a reviewer will
-find if the paper does not say them first.
+Four things follow.
 
-- **Protanopia is the claim that holds.** Seven of ten generated palettes
-  clear a threshold no reference palette clears. This is the CVD-as-objective
-  argument confirmed against someone else's rule and someone else's number.
+- **All three dichromacy rules now pass, and no reference palette passes more
+  than one.** This is the CVD claim confirmed against thresholds and a
+  simulation model nobody here chose. It is also a direct consequence of the
+  default config being changed to model dichromacy rather than anomaly at half
+  severity, which was itself prompted by an earlier run of this same lint.
 - **The distance rules agree with the benchmark.** `mutually-distinct` and
   `color-name-discriminability` pass for every generated palette and fail for
-  the control, which is the sanity check that the linter and `minDeltaE` are
-  measuring the same thing.
-- **Deuteranopia is a coin flip, for two reasons worth separating.** The
-  first is a measurement difference, not a palette difference: color-buddy
-  simulates dichromacy with an LMS-matrix model (`@bjornlu/colorblind`, inlined
-  in its bundle) while `bench/metrics.js` uses culori's Machado filters, and
-  on a borderline pair they disagree. The closest deuteranopia pair in one
-  generated palette, `#613741` and `#486948`, measures 12.45 under Machado and
-  8.78 under color-buddy's model, clearing this benchmark comfortably and
-  missing the rule's threshold of 9 by 0.22. So a verdict that flips with the
-  seed is partly an artifact of which simulation is used, and the protanopia
-  result matters more precisely because its margin is wide.
+  a control of near-identical colors, which is the check that the linter and
+  `minDeltaE` measure the same thing.
+- **`cvd-friendly-grayscale` never passes, and cannot.** It requires every
+  pair to differ by more than 9 after a grayscale projection. Adding a
+  grayscale term to the objective lifted the palettes' own grayscale minimum
+  from 0.8 to about 7.9, but the score plateaus there no matter how the weight
+  is raised: eight colors cannot be spread far enough in lightness alone while
+  the other terms still hold. The gap between 7.9 and the threshold of 9 is
+  the honest limit, and the reference palettes sit between 0.0 and 2.5, with
+  two of `d3category10`'s colors identical in grayscale.
+- **`fair-nominal` never passes, and the conflict is real.** It wants a
+  lightness range under 50, and spreading lightness is exactly how the
+  grayscale and CVD terms buy separation. Its own failure message says it "is
+  naturally at odds with color vision deficiency friendly palettes". Adding the
+  grayscale term did, though, flip `even-colors-lightness` from 1/10 to 10/10:
+  the lightness spread is now even, just wide.
 
-  The second reason is still open: deuteranomaly carries the highest weight in
-  the default config, more than three times protanomaly's, and produces the
-  weaker outcome under either model. The config models *anomalous trichromacy
-  at severity 0.5* while the rule tests *full dichromacy*, so they are not the
-  same condition, but the gap deserves a look. Grayscale never passes and is
-  not modelled at all.
-- **The linter faults the palettes for uneven lightness**, nine times in ten
-  on `even-colors-lightness` and always on `fair-nominal`. Spreading lightness
-  is precisely how the optimizer buys separation under simulated CVD, and
-  `fair-nominal`'s own failure message says it "is naturally at odds with
-  color vision deficiency friendly palettes". This is a real disagreement
-  about priorities rather than a defect in either tool, and it should be
-  reported as the cost of the trade rather than omitted.
-
-A caution for anyone re-running this: the CVD verdicts vary from trial to
-trial, so a single generated palette proves nothing in either direction. The
-first two attempts at this comparison, on one palette each, disagreed with
-each other about deuteranopia and protanopia. The table above is over ten.
+A caution for anyone re-running this: measure over trials, never one palette.
+The first two attempts here, on one palette each, disagreed with each other
+about deuteranopia and protanopia, and under the previous defaults the
+deuteranopia verdict was close enough to the threshold to flip with the seed.
+The tables above are over ten trials, and the margins are now wide enough that
+they no longer flip; that is itself part of the result.
 
 ## What the benchmark still needs
 
 - **A manual pass on the three citations with no DOI**, named in the header
   of `references.bib`.
-- **Reconcile the CVD weights with the CVD results.** Deuteranomaly carries
-  the highest weight in the default config and produces the weaker outcome;
-  protanomaly carries a fifth of it and produces the stronger one. Part of
-  that is the simulation difference described above, but not all of it.
-- **Decide whether to report both CVD models.** Any CVD claim is relative to
-  a simulation, and the two in use here disagree near the threshold. Naming
-  the model beside every number would cost a column and remove an obvious
-  line of attack.
-- **Decide whether to model tritanopia and grayscale at all**, which
-  color-buddy flags and the default config does not touch.
+- **Decide whether the new default trade is the right one for the paper's
+  headline.** Modeling the dichromacies, tritanopia and grayscale cost 4.8
+  points of unimpaired minimum ΔE, from 23.8 to 19.0, which is close to
+  `tableau10` at 18.1 and `observable10` at 18.4. The CVD numbers are far
+  better and the worst case across every condition is 7.9 against at best 2.5
+  for any reference, so the trade looks right; but "we beat the references on
+  plain minimum ΔE" is no longer the comfortable claim it was, and the paper
+  should lead with the worst-case-across-conditions number instead.
 
 ## Done since the first draft
 

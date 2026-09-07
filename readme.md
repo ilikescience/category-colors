@@ -180,6 +180,44 @@ with different settings:
 - Add more `jnd` entries with different `cvd` settings to cover more deficiencies.
 - Swap `similarity` or change `config.similarityTarget` to chase a reference palette.
 
+### Color vision, and the trade it makes
+
+The default `evalFunctions` carries four `jnd` terms under simulation:
+protanopia and deuteranopia at weight 0.3 each, tritanopia at 0.2, and
+grayscale at 0.1. They model full dichromacy rather than a milder anomaly,
+because optimizing the harder case carries the milder one.
+
+**This costs ordinary separation, on purpose.** Measured over ten seeds at
+eight colors, against a configuration with no CVD terms beyond the previous
+default:
+
+| | before | after |
+| --- | --- | --- |
+| minimum ΔE | 23.8 | 19.0 |
+| minimum ΔE, deuteranopia | 8.9 | 16.1 |
+| minimum ΔE, protanopia | 11.7 | 16.2 |
+| minimum ΔE, tritanopia | 10.6 | 17.2 |
+| minimum ΔE, grayscale | 0.8 | 7.9 |
+
+If you do not need that, raise the unimpaired `jnd` weight or drop the terms
+you do not want, and the separation comes back:
+
+```js
+const config = createDefaultConfig();
+// keep only the red-green deficiencies
+config.evalFunctions = config.evalFunctions.filter(
+  (entry) => !entry.cvd || /prot|deuter/.test(entry.cvd.type)
+);
+```
+
+Two honest notes on what these numbers mean. The deficiency filters are
+culori's, implementing Machado, Oliveira and Fernandes (2009); any CVD claim
+is relative to the model that produced it, so name the model when you quote a
+number. And `grayscale` is a luminance projection standing in for print or
+photocopying, not a physiological model of achromatopsia. Its score also stops
+improving past a weight of about 0.05, so pushing it harder only takes
+separation from the other terms.
+
 `config.colorDistance` chooses the distance method and the space it is measured
 in (see the [culori distance docs](https://culorijs.org/docs/color-difference/)):
 
