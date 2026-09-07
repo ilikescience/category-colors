@@ -47,7 +47,7 @@ const initialState = prepareInitialState(createDefaultState(), config);
 const finalState = runWithOrderOptimization(initialState, config);
 
 console.log(finalState.colors.map(String));
-// [ '#3b4755', '#cb5f8b', '#d9e5e8', ... ]
+// [ '#eedfda', '#b19aca', '#5b9590', ... ]
 ```
 
 `prepareInitialState` fills the palette out to `config.colorCount`, clamps every
@@ -183,24 +183,31 @@ with different settings:
 ### Color vision, and the trade it makes
 
 The default `evalFunctions` carries four `jnd` terms under simulation:
-protanopia and deuteranopia at weight 0.3 each, tritanopia at 0.2, and
-grayscale at 0.1. They model full dichromacy rather than a milder anomaly,
-because optimizing the harder case carries the milder one.
+protanopia, deuteranopia and tritanopia at weight 0.1 each, and grayscale at
+0.05, against an unimpaired `jnd` term at 1. They model full dichromacy rather
+than a milder anomaly, because optimizing the harder case carries the milder
+one.
 
-**This costs ordinary separation, on purpose.** Measured over ten seeds at
-eight colors, against a configuration with no CVD terms beyond the previous
-default:
+**Those weights look too low, and are not.** These terms saturate early:
+past a certain point they stop buying protection and only take separation from
+everything else. Measured over ten seeds at eight colors, against the 2.0.x
+weights (0.3 / 0.3 / 0.2 / 0.1 against an unimpaired 0.3):
 
-| | before | after |
+| | 2.0.x | current |
 | --- | --- | --- |
-| minimum ΔE | 23.8 | 19.0 |
-| minimum ΔE, deuteranopia | 8.9 | 16.1 |
-| minimum ΔE, protanopia | 11.7 | 16.2 |
-| minimum ΔE, tritanopia | 10.6 | 17.2 |
-| minimum ΔE, grayscale | 0.8 | 7.9 |
+| minimum ΔE | 19.0 | 22.6 |
+| minimum ΔE, deuteranopia | 16.1 | 16.3 |
+| minimum ΔE, protanopia | 16.2 | 14.9 |
+| minimum ΔE, tritanopia | 17.2 | 15.6 |
+| minimum ΔE, grayscale | 7.9 | 7.7 |
 
-If you do not need that, raise the unimpaired `jnd` weight or drop the terms
-you do not want, and the separation comes back:
+The number that decides whether a reader confuses two categories is the worst
+pair across *every* condition, and that is pinned to the grayscale row in both
+configurations — 7.9 against 7.7. The 3.6 points of ordinary separation came
+out of red-green headroom that was never the binding constraint.
+
+To trade back the other way, raise the CVD weights or lower the unimpaired
+`jnd` term. To drop conditions entirely:
 
 ```js
 const config = createDefaultConfig();

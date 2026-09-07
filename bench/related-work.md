@@ -29,6 +29,16 @@ constraints **including for simulated CVD**, plus minimum-lightness-distance for
 grayscale, maximum-lightness for white-background contrast, and a colour-saliency
 term drawn from the same Heer & Stone model this library uses.
 
+**QualPal** [larsson2025qualpal] maximises the **minimum** pairwise distance
+over a sampled HSL box, with optional protan/deutan/tritan adaptation. It
+selects rather than searches, and it is deterministic. Two things make it the
+most important comparison in this list: its objective is exactly the statistic
+this benchmark reports as the headline number, and it is the only other system
+here that can be asked to protect against colour vision deficiency at all. It
+is also the most available: on PyPI, CRAN and the web, MIT as C++ and
+Python, GPL-3 as the R package. It has no
+luminance or grayscale term, so print is outside its scope. Measured below.
+
 **CatPAW** [tseng2026catpaw] derives palettes from four crowdsourced experiments
 on redundant colour–shape encoding. Newest of the group and from Szafir's lab;
 worth reading before submitting anything.
@@ -68,12 +78,14 @@ annealing to categorical palette generation" describes prior art.
 What is plausibly distinctive, in rough order of strength:
 
 1. **CVD robustness as weighted objective terms rather than constraints.** The
-   default config carries three JND terms — unimpaired, protanomaly 0.5, and
-   deuteranomaly 0.5, the last at the highest weight. Petroff treats CVD as a
-   *constraint* to satisfy; here it is a cost to trade off, so the optimizer
-   will accept a slightly worse unimpaired palette for a much better
-   deuteranomalous one. That trade is the interesting behaviour and it is
-   measurable — it is what the CVD column of the benchmark shows.
+   default config carries five JND terms: unimpaired at weight 1, protanopia,
+   deuteranopia and tritanopia at 0.1 each, and grayscale at 0.05. Petroff and
+   QualPal both treat CVD as something to satisfy — a constraint and a
+   simulation-before-selection respectively; here it is a cost to trade off,
+   which is why the weights can be tuned against measurement rather than set
+   once. **The grayscale term is the part with no equivalent anywhere in the
+   comparison set**, and it is the one that survives contact with QualPal.
+   Claim the print axis, not CVD in general.
 2. **Channel locking.** Holding a brand hue fixed while saturation and lightness
    move to satisfy contrast is a real practitioner constraint the cited
    generators do not expose.
@@ -140,32 +152,86 @@ different model and threshold say" below for what it can and cannot support.
 the same seeds (see `bench/palettailor/readme.md` for how it is fed data it
 was never designed to run without). At 8 colours, ten trials, seed 1:
 
-- **Palettailor wins on plain minimum ΔE**, 26.6 ± 2.4 against 19.0 ± 1.5, and
-  the gap widened when the defaults here took on the CVD terms. It searches
-  lightness 35–95 and any chroma while this config works a mid-range okhsl box
-  and now spends much of its budget on four simulated conditions. State this
-  plainly rather than burying it.
-- **It loses badly the moment any deficiency is simulated.** Worst case across
-  every condition: 1.2 ± 1.1 against 7.9 ± 0.3. Under deuteranopia 5.8 against
-  16.1, protanopia 9.2 against 16.2, tritanopia 10.5 against 17.2, grayscale
-  1.2 against 7.9. Palettailor has no CVD term at all, and its numbers sit
-  among the hand-designed reference palettes.
-- **On name difference Palettailor is now ahead**, 0.34 ± 0.16 against
-  0.16 ± 0.12. It optimizes name difference and this config does not, and the
-  CVD terms cost it: the same measurement was 0.36 before they were added.
-  `--names 0.5` recovers it, and the paper should either enable that term or
-  concede the point.
+- **Palettailor still wins on plain minimum ΔE**, 26.6 ± 2.4 against 22.6 ± 1.6.
+  The gap narrowed sharply when the 3.0 defaults relaxed the CVD weights, but
+  it did not close, and part of what remains is a difference of search spaces
+  rather than search methods: Palettailor works lightness 35–95 at any chroma
+  while this config works a mid-range okhsl box. State it plainly rather than
+  burying it.
+- **It loses the moment any deficiency is simulated.** Worst case across every
+  condition: 1.2 ± 1.1 against 7.7 ± 0.3. Under deuteranopia 5.8 against 16.3,
+  protanopia 9.2 against 14.9, tritanopia 10.5 against 15.6, grayscale 1.2
+  against 7.7. Palettailor has no CVD term at all, and its numbers sit among
+  the hand-designed reference palettes.
+- **On name difference the two are now level**, 0.34 ± 0.16 against 0.35 ± 0.14.
+  This is new, and it is a side effect rather than an achievement: 2.0.1
+  measured 0.16 here and the 3.0 reweighting lifted it without a `names` term
+  in the objective at all. Spreading colours further apart in ΔE tends to move
+  them apart in naming too. Do not claim it as a designed property, and note
+  that `--names 0.5` remains the way to optimize it deliberately.
 
-So the trade is explicit: this library gives up plain separation and
-nameability to hold every simulated condition above 7.9, where the closest
-competitor drops to 1.2. Whether that is the right trade depends on the
-reader's audience, which is an argument worth making directly rather than
-winning on a single column. Two further caveats: the
-lightness-range difference means the plain min-ΔE comparison is partly a
-comparison of search spaces, not search methods; and Palettailor's annealing
-schedule accepts nearly every move for the first 60% of its run, so it is
-closer to a short hill-climb than to the annealing this library does — see the
-runner's readme for what its code actually does.
+Two further caveats: Palettailor's annealing schedule accepts nearly every move
+for the first 60% of its run, so it is closer to a short hill-climb than to the
+annealing this library does; and it is data-dependent, so a benchmark with no
+data hides the advantage it was actually built for — spending contrast on the
+classes that touch. See the runner's readme.
+
+## QualPal, measured
+
+`node bench/run.js --qualpal` runs QualPal (Larsson) through its Python
+package. It is the most important comparison here and the least comfortable
+one. See `bench/qualpal/readme.md` for the runner, including why it bypasses
+the documented Python class.
+
+It is not a search. QualPal selects the *n* most mutually distant colours from
+a sampled HSL box, maximising the minimum pairwise distance — which is exactly
+the statistic this benchmark reports as its headline number. It is also
+deterministic: one configuration gives one palette, so its rows are single
+values with nothing averaged.
+
+Both reported configurations use QualPal's own default colorspace and differ
+only in whether CVD adaptation is on, so the gap between them measures that
+one thing:
+
+| | min ΔE | worst deficiency | grayscale | worst of all six |
+| --- | --- | --- | --- | --- |
+| category-colors 3.0 | 22.6 ± 1.6 | 13.7 ± 2.0 | **7.7 ± 0.3** | **7.7 ± 0.3** |
+| qualpal, CVD on | 24.7 | **21.8** | 0.9 | 0.9 |
+| qualpal, CVD off (ships) | **39.6** | 7.3 | 1.2 | 1.2 |
+
+- **QualPal beats this library on plain separation and on deficiencies, and it
+  is not close on either.** 24.7 against 22.6, and worst deficiency 21.8
+  against 13.7 — a 60% margin. Every one of our ten trials, from 9.9 to 16.1,
+  falls below its 21.8. There is no reading of these rows in which this library
+  is the better tool for colour vision deficiency, and any draft that implies
+  otherwise is wrong.
+- **What it does not do is print.** Grayscale 0.9 with CVD on, 1.2 without,
+  against 7.7 here. QualPal's CVD options are protan, deutan and tritan; it has
+  no luminance term, so nothing in it defends the one condition a photocopier
+  applies. Turning its CVD adaptation on makes grayscale slightly *worse*
+  (1.2 to 0.9), because separating under three dichromacies spends the same
+  lightness budget that grayscale needs.
+- **The claim reduces to one axis.** Worst pair across all six conditions:
+  7.7 against 0.9 and 1.2. That gap is real and large, and it comes entirely
+  from the grayscale term. Say "print", not "accessibility".
+- **Its defaults are permissive, not conservative.** The default box is the
+  whole HSL cube, so QualPal will return near-black and near-white; that is how
+  it reaches 39.6. The same freedom gives it the worst WCAG contrast in the
+  benchmark, 1.13 against white, and a minimum name difference of 0.10 with CVD
+  on — two of its eight colours get the same name.
+
+An earlier version of this section reported QualPal in a search box matched to
+this library's, which cost it nine points of worst deficiency (21.8 to 12.6)
+and made this library look narrowly ahead on that axis. It never was. The box
+remains a genuine confound in the other direction — QualPal's default cube is
+far larger than the mid-range okhsl region searched here — and
+`bench/qualpal/readme.md` carries all four cells. Name the confound; do not
+resolve it by picking the box that flatters.
+
+The honest summary: **QualPal is a better categorical palette generator than
+this one on every axis it models, and the only thing it does not model is
+print.** That is the claim that survives, and it is much narrower than
+"accessibility". Write it that way before a reviewer does it for you.
 
 ## Colorgorical, cross-scored
 
@@ -175,24 +241,34 @@ its four criteria, each the minimum over pairs. Same run as above:
 
 | | ΔE | name diff | pair pref | name uniq |
 | --- | --- | --- | --- | --- |
-| category-colors | 18.6 ± 2.2 | 0.50 ± 0.10 | −44 ± 6 | 0.57 ± 0.08 |
+| category-colors 3.0 | 22.7 ± 2.2 | 0.60 ± 0.09 | −50 ± 7 | 0.50 ± 0.09 |
+| qualpal (CVD on) | 23.2 | 0.61 | −85 | 0.56 |
+| qualpal (defaults) | 20.4 | 0.41 | −54 | 0.59 |
 | palettailor | 26.6 ± 2.8 | 0.63 ± 0.13 | −67 ± 8 | 0.27 ± 0.10 |
 | colorgorical (own samples) | 15.8 ± 3.2 | 0.45 ± 0.07 | −23 ± 9 | 0.41 ± 0.11 |
 | best reference | 19.7 (observable10) | 0.70 (d3) | −13 (tableau20) | 0.59 (ColorBrewer) |
 
 And the reverse direction, Colorgorical's ten 8-colour sample palettes at its
 all-equal slider setting scored on this benchmark's metrics: minimum ΔE
-15.8 ± 3.3 against 19.0 here, worst case across every simulated condition
-0.9 ± 0.6 against 7.9 ± 0.3, and cosine name difference 0.09 ± 0.06 against
-0.16 — its closest-named pair is usually two shades of the same name.
+15.8 ± 3.3 against 22.6 here, worst case across every simulated condition
+0.9 ± 0.6 against 7.7 ± 0.3, and cosine name difference 0.09 ± 0.06 against
+0.35 — its closest-named pair is usually two shades of the same name.
 
-Note that this library's Colorgorical scores moved when its defaults took on
-the CVD terms, and not all in one direction: ΔE fell from 24.0 to 18.6 and
-name difference from 0.61 to 0.50, while pair preference improved from −58 to
-−44 and name uniqueness from 0.52 to 0.57. Spreading lightness evenly appears
-to help on the two criteria grounded in human ratings, which is a happy
-accident rather than something the objective asked for, and should be
-described as one.
+These scores have now moved twice with this library's defaults, in opposite
+directions, which is worth stating rather than reporting only the current
+row. Taking on the CVD terms in 2.0 pushed ΔE from 24.0 down to 18.6 and name
+difference from 0.61 to 0.50 while improving pair preference and name
+uniqueness; relaxing those weights in 3.0 moved ΔE back to 22.7 and name
+difference to 0.60, and gave back most of the pair-preference and
+name-uniqueness gains (−44 to −50, 0.57 to 0.50). **None of these four
+criteria is in the objective.** They move as side effects of how far apart the
+palette is spread, which is a reason to report them and not a reason to claim
+them.
+
+QualPal's row is the interesting one: it leads on ΔE and name difference and
+posts the worst pair preference of anything measured here, −85. Maximising a
+minimum pushes colours to the extremes of the box, and the extremes are not
+where people say they like colours.
 
 Three things to know before quoting these:
 
@@ -228,9 +304,24 @@ before anyone else states it for us:
 
 > Given a just-noticeable-difference threshold of 20, CIEDE2000 distance in
 > CIELAB D65, and Machado et al. (2009) as the color vision deficiency model,
-> this optimizer produces palettes that score better on those terms than the
-> established categorical palettes and than the two published generators that
-> solve the same problem.
+> this optimizer produces eight-colour palettes whose **worst pair across
+> unimpaired vision, five simulated deficiencies and a grayscale projection**
+> is higher than that of any established categorical palette or any of the
+> three published generators measured here.
+
+That is the strongest form still standing, and it is deliberately not "better
+palettes". Three things it does **not** claim, each because a measurement here
+says otherwise:
+
+- Not that it wins on plain separation. Palettailor (26.6) and QualPal (24.7
+  with CVD on, 39.6 without) both beat it, and it leads Okabe-Ito only on the
+  mean of ten trials.
+- Not that it is the best on colour vision deficiency. QualPal is far better:
+  worst deficiency 21.8 against 13.7, with all ten of our trials below its
+  figure. **Grayscale is the only axis with a structural gap**, because no
+  other system measured has a luminance term at all.
+- Not that any of this is validated by a third party. See the color-buddy
+  section: that tool has been an input to these weights twice.
 
 Every part of that is a **choice**, not a discovery. The threshold comes from
 Stone, Szafir & Setlur [stone2014engineering]; the distance metric from
@@ -247,41 +338,47 @@ so beating them on it proves little. **Okabe & Ito's Color Universal Design
 set was**, and it is the palette a reviewer will ask about first. It is in the
 benchmark as `okabeIto`.
 
-It is by some distance the best of the references, and it beats this library
-where this library is weakest:
+It is by some distance the best of the references:
 
 | | min ΔE | worst deficiency | grayscale |
 | --- | --- | --- | --- |
-| okabeIto | **21.3** | 8.8 | 0.4 |
-| category-colors | 19.0 ± 1.5 | 12.5 to 16.4 | 7.9 |
-| carbon | 12.8 | 5.0 | 2.5 |
-| tableau10 | 18.1 | 3.2 | 0.5 |
+| category-colors 3.0 | 22.6 ± 1.6 | 9.9 to 16.1 | **7.7** |
+| okabeIto | 21.3 | 8.8 | 0.4 |
 | observable10 | 18.4 | 0.6 | 0.7 |
-| colorBrewer3_10 | 13.7 | 1.9 | 0.1 |
+| tableau10 | 18.1 | 3.2 | 0.5 |
 | d3category10 | 16.2 | 1.6 | 0.0 |
+| colorBrewer3_10 | 13.7 | 1.9 | 0.1 |
+| carbon | 12.8 | 5.0 | 2.5 |
 | tableau20 | 12.6 | 0.6 | 0.8 |
 
-Three readings, and the first is not in our favour:
+Three readings. The first changed with 3.0 and the change should be described
+carefully, because overstating it is the easiest mistake available here:
 
-- **Okabe-Ito has the highest plain minimum ΔE of anything measured here**,
-  21.3, above this library's ten-trial mean of 19.0 and above its best trial of
-  21.6 only barely. A hand-designed palette from 2008 beats the optimizer on
-  the headline number. Say so.
-- **On the deficiencies the optimizer is still ahead, without overlap.** Worst
-  case across the five deficiency conditions, our ten palettes run 12.5 to
-  16.4 against Okabe-Ito's 8.8. It is roughly twice as good as the next
-  reference (carbon at 5.0), which is exactly what a palette designed for the
-  purpose should look like, and we are roughly 1.4 to 1.9 times better again.
+- **The optimizer now leads on plain minimum ΔE, on the mean.** 22.6 ± 1.6
+  against 21.3. Through 2.0.x this comparison went the other way and the note
+  here read "a hand-designed palette from 2008 beats the optimizer on the
+  headline number". It no longer does — but **four of our ten trials land at or
+  below 21.3** (20.7, 21.3, 21.3, 21.3), so the correct claim is that the
+  distribution is centred above Okabe-Ito, not that a generated palette beats
+  it. Anyone quoting a single run has a 40% chance of quoting a tie or a loss.
+- **On the deficiencies the optimizer is ahead, and still without overlap.**
+  Worst case across the five deficiency conditions, our ten palettes run 9.9 to
+  16.1 against Okabe-Ito's 8.8. The floor moved down with the 3.0 reweighting —
+  it was 12.5 — so the margin is now one trial wide at the bottom. It is worth
+  saying that this was a deliberate trade and that the bottom of the range is
+  where it shows.
 - **Okabe-Ito is not safe in grayscale**, at 0.4. The collision is orange
   `#e69f00` against sky blue `#56b4e9`, two colors of nearly equal luminance,
   and it is not an artifact of the gray swatch: the seven chromatic colors
   alone score the same. Photocopy an Okabe-Ito figure and two categories merge.
   That is a real gap and it is the one this library's grayscale term closes,
-  7.9 against 0.4.
+  7.7 against 0.4. **This is the least contested finding in the whole
+  benchmark** — no reference palette exceeds 2.5, and no other generator has a
+  luminance term at all.
 
-The honest summary is that Okabe-Ito wins on unaided separation, this library
-wins on every simulated condition, and the gap on grayscale is large enough to
-matter for print.
+The honest summary is that this library now leads Okabe-Ito on average on
+unaided separation and on every simulated condition, and that the grayscale gap
+is the one large enough to carry an argument on its own.
 
 ## The result does not depend on the threshold
 
@@ -292,26 +389,31 @@ eight colors:
 
 | | worst pair per palette, sorted |
 | --- | --- |
-| category-colors | 7.0 7.8 7.9 7.9 8.0 8.0 8.0 8.0 8.0 8.0 |
+| category-colors 3.0 | 7.2 7.3 7.5 7.6 7.7 7.8 7.8 7.9 7.9 8.0 |
+| qualpal, CVD on | 0.9 (deterministic) |
 | palettailor | 0.2 0.2 0.3 0.4 0.4 1.3 1.6 1.6 2.6 3.4 |
 | colorgorical | 0.2 0.3 0.5 0.8 0.8 0.9 1.0 1.1 1.1 2.6 |
+| qualpal, defaults | 1.2 (deterministic) |
 
-**The distributions do not overlap**, and neither do they against Okabe-Ito
-once grayscale is excluded to compare like with like: 12.5 to 16.4 against 8.8.
-Any cutoff between 3.4 and 7.0 separates the generators completely, so the
-ranking survives any reasonable choice of threshold, including one chosen by
-someone hostile to it. Ten of ten Palettailor palettes and ten of ten
+**The distributions do not overlap.** Any cutoff between 3.4 and 7.2 separates
+this library from everything else measured, so the ranking survives any
+reasonable choice of threshold, including one chosen by someone hostile to it.
+This is the *only* measurement on which QualPal does not lead, and it is
+carried entirely by the grayscale condition: across the five deficiencies alone
+QualPal's floor is 21.8 against our 9.9. Ten of ten Palettailor palettes and ten of ten
 Colorgorical palettes contain a pair below ΔE 5 under some condition; eight
 and nine of ten respectively fall below 2, which is two colors nobody can tell
 apart. None of ours falls below 7.
 
 This is also the number to quote rather than a count of failing pairs, because
 a count says something different and weaker. Counting pairs below 20, out of
-280, this library and Palettailor are effectively tied: 13% against 12% under
-deuteranopia, 13% against 11% under protanopia, and Palettailor is *better*
-with no simulation at all, 0% against 4%. Its palettes are more spread out on
-average and catastrophic in the tail. Ours are tighter on average with no
-catastrophic pair. Since a palette fails on its worst pair, the tail is what
+280, this library and Palettailor are effectively tied: 14% against 12% under
+deuteranopia, 13% against 11% under protanopia, and both are now at 0% with no
+simulation at all. Palettailor's palettes are more spread out on average and
+catastrophic in the tail. Ours are tighter on average with no catastrophic
+pair. QualPal with CVD on posts the best counts of anything measured — 0%, 0%
+and 4% — but from a single palette of 28 pairs rather than 280, so the number
+carries far less weight than the others in this paragraph. Since a palette fails on its worst pair, the tail is what
 matters — the same reason the benchmark reports minima rather than means.
 
 ## What a different model and threshold say
@@ -319,25 +421,43 @@ matters — the same reason the benchmark reports minima rather than means.
 `bench/colorbuddy` runs color-buddy's published lint rules, which make
 different choices than we do: a threshold of 9 rather than 20, and an
 LMS-matrix dichromacy model from `@bjornlu/colorblind` rather than Machado.
-Under those different choices the ranking is the same. All three dichromacy
-rules pass for ten of ten generated palettes; no reference palette passes more
-than one, and Palettailor passes protanopia three times in ten, deuteranopia
-once.
+Under those different choices the ranking is the same, but **the 3.0
+reweighting cost real ground here and it should be reported, not buried**:
+
+| rule | 2.0.1 | 3.0 |
+| --- | --- | --- |
+| Protanopia-friendly | 10/10 | 10/10 |
+| Deuteranopia-friendly | 10/10 | **8/10** |
+| Tritanopia-friendly | 10/10 | **8/10** |
+| Right in black and white | 0/10 | 0/10 |
+
+No reference palette passes more than one dichromacy rule, and Palettailor
+passes protanopia three times in ten and deuteranopia once, so the ordering is
+unchanged. But two of ten generated palettes now fail rules that all ten passed
+before. Under our own model and threshold the same trade looks almost free
+(worst case across conditions moved 7.9 to 7.7); under color-buddy's threshold
+of 9 and a different simulation model it costs two palettes in ten on two
+rules. **That divergence is the most useful thing this runner has produced**,
+because it shows the relaxation is closer to the edge than our own numbers
+suggest. If the deficiency margin matters more than the 3.6 points of ordinary
+separation 3.0 bought, the sweep behind that change found settings around
+`jnd 0.7 / dichromacy 0.15 / tritanopia 0.05` that keep worst-deficiency near
+14 for about a point and a half less unimpaired separation.
 
 **This is not independent validation, and must not be presented as such.**
-An earlier run of this same lint is what prompted re-examining the CVD weights,
-which led to the defaults changing from anomaly at half severity to full
-dichromacy. The tool is therefore an input to the design. What it can honestly
-support is narrower: that the result is not an artifact of our particular
-threshold or our particular simulation model, since a different pair of both
-ranks the palettes the same way. Disclose the sequence, in the paper, before a
+An earlier run of this same lint is what prompted re-examining the CVD weights
+in 2.0, and the weights have since been tuned twice against measurements this
+project chose. The tool is therefore an input to the design, not a check on it.
+What it can honestly support is narrower: that the *ranking* is not an artifact
+of our particular threshold or simulation model, since a different pair of both
+orders the palettes the same way. Disclose the sequence, in the paper, before a
 reviewer finds it in the commit history.
 
 Two of its rules this library fails, and they are worth reporting:
 
 - **`cvd-friendly-grayscale` is unreachable**, not merely failed. It requires
   every pair to differ by more than 9 after a grayscale projection. Adding a
-  grayscale term lifted our own grayscale minimum from 0.8 to about 7.9, and
+  grayscale term lifted our own grayscale minimum from 0.8 to about 7.7, and
   it plateaus there at any weight: eight colors cannot be spread far enough in
   lightness alone while the other terms hold. The references sit between 0.0
   and 2.5, with two of `d3category10`'s colors identical in grayscale, so the
@@ -361,17 +481,33 @@ than as a scoring system, and should not be cited as one.
 
 - **A manual pass on the three citations with no DOI**, named in the header
   of `references.bib`.
-- **Decide whether the new default trade is the right one for the paper's
-  headline.** Modeling the dichromacies, tritanopia and grayscale cost 4.8
-  points of unimpaired minimum ΔE, from 23.8 to 19.0, which is close to
-  `tableau10` at 18.1 and `observable10` at 18.4. The CVD numbers are far
-  better and the worst case across every condition is 7.9 against at best 2.5
-  for any reference, so the trade looks right; but "we beat the references on
-  plain minimum ΔE" is no longer the comfortable claim it was, and the paper
-  should lead with the worst-case-across-conditions number instead.
+- **Decide whether 3.0's weights are where the paper wants to stand.** They
+  buy 3.6 points of unimpaired separation (19.0 to 22.6) for 0.2 of worst-case
+  (7.9 to 7.7) on our own measurements — but two of ten palettes now fail
+  color-buddy's deuteranopia and tritanopia rules, which all ten passed at
+  2.0.1, and all ten fall below QualPal on worst deficiency. The trade still
+  looks right, and the paper should lead with worst-case-across-conditions
+  either way, but the argument is now "we chose a point on a frontier" rather
+  than "this is free". Say which, and show the frontier.
+- **A QualPal sensitivity pass.** Its numbers come from one deterministic
+  palette per configuration. Varying `colorspace_size` and the box would show
+  whether 24.7 is a stable property or a lucky grid, and it is the first thing
+  a reviewer who knows the tool will ask.
+- **Resolve the `qualpalr` citation.** `references.bib` carries a CRAN package
+  DOI; CRAN also advertises a preferred citation that has not been read yet.
+- **Petroff and CatPAW are still unmeasured.** Petroff is the closer gap: it
+  optimizes grayscale explicitly, which is the one axis this work is now
+  claiming, so it is the strongest untested threat to the central claim.
 
 ## Done since the first draft
 
+- **QualPal comparison** (`bench/qualpal`), in two configurations, after
+  finding that its Python package silently drops every option including `cvd` —
+  see that runner's readme. It is the strongest competitor measured and it
+  narrowed the claim to the print axis.
+- **The default CVD weights relaxed in 3.0**, on the measurement that they had
+  saturated: worst case is pinned to grayscale in every configuration, so the
+  red-green terms were defending a margin nothing was contesting.
 - **Palettailor comparison**, **Colorgorical cross-scoring** and a
   **color-buddy run**, reported as a robustness check under a different
   threshold and simulation model rather than as validation — above.
