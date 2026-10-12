@@ -14,6 +14,19 @@ node bench/run.js --qualpal                    # also generate with QualPal, two
 node bench/run.js --colorgorical               # also score everything on Colorgorical's criteria (Docker)
 ```
 
+`perf.js` measures speed rather than quality: CPU time per generation at
+categorycolors.com's default settings, with each palette's exact cost so two
+checkouts can be diffed.
+
+```sh
+node bench/perf.js                             # 4, 8, 12, 20 colors; 3 seeds each
+node bench/perf.js --colors 8 --seeds 10
+node bench/perf.js --format json -o perf.json  # keeps every palette, for diffing
+```
+
+The first run in a process includes JIT warm-up, so read the later seeds for
+steady-state cost.
+
 This directory is excluded from the npm tarball by the `files` field in
 `package.json`; it ships with the repository, not the package.
 

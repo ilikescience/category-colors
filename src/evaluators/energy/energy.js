@@ -2,7 +2,7 @@
 // colors that are close to each other have high potential energy,
 // colors that are far away have low potential energy.
 
-import { deltaE } from '../../utils/deltaE.js';
+import { paletteDeltaE } from '../../utils/deltaE.js';
 import { resolveDistanceOptions, getMaxDistance } from '../../utils/distanceOptions.js';
 
 const evaluateEnergy = (state, config) => {
@@ -17,13 +17,12 @@ const evaluateEnergy = (state, config) => {
         return 0;
     }
 
+    const distance = paletteDeltaE(colors, distanceOptions);
     let totalEnergy = 0;
     for (let i = 0; i < colors.length; i++) {
-        const color = colors[i];
         for (let j = 0; j < colors.length; j++) {
             if (i === j) continue;
-            const compareColor = colors[j];
-            const difference = deltaE(color, compareColor, distanceOptions);
+            const difference = distance(i, j);
             if (!Number.isFinite(difference)) {
                 continue;
             }

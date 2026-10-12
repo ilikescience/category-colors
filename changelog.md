@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Performance
+
+- **Generation is 4–18× faster, with identical output.** Each annealing step
+  changes one color, but every step used to re-convert every color to Lab,
+  re-simulate it under each CVD condition, and re-measure every pair. Those
+  values are now memoized per color (`src/utils/colorMemo.js`), so a step only
+  computes what involves the color that moved. CPU per generation at
+  categorycolors.com's defaults (okhsl, 60000 iterations, 4 CVD terms), Node 24:
+
+  | colors | before | after | |
+  | --- | --- | --- | --- |
+  | 4 | 83 µs/step, 2.0 s | 20 µs/step, 0.5 s | 4.3× |
+  | 8 | 324 µs/step, 9.4 s | 35 µs/step, 1.1 s | 9.2× |
+  | 12 | 716 µs/step, 22.8 s | 55 µs/step, 1.8 s | 13× |
+  | 20 | 1951 µs/step, 56.7 s | 111 µs/step, 3.3 s | 18× |
+
+  The caches only skip work: memoized conversions take culori's own steps, and
+  distances come from culori's own functions. Seeded runs reproduce 3.0.1's
+  palettes and costs bit for bit (28 of 28 in `bench/perf.js`, plus a test).
+  A color edited in place is detected by its channel values and recomputed.
+  `node bench/perf.js` reproduces the timings.
+
 ## 3.0.1
 
 ### Fixed

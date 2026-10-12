@@ -11,6 +11,7 @@
 // physiological model of achromatopsia and must not be described as one.
 
 import { createColor } from '../utils/paletteColor.js';
+import { convertMemoized, memoFor } from '../utils/colorMemo.js';
 import {
     filterDeficiencyProt,
     filterDeficiencyDeuter,
@@ -43,18 +44,50 @@ const getCvdFilter = (cvdType, severity) => {
     }
 };
 
-const applyCvdToColor = (color, cvdType, severity) => {
-    const filter = getCvdFilter(cvdType, severity);
-    const simulated = filter(color);
-    const newColor = createColor(simulated);
+// Building a filter computes its matrix, so build each one once.
+const FILTERS = new Map();
+
+const getCachedCvdFilter = (key, cvdType, severity) => {
+    let filter = FILTERS.get(key);
+    if (!filter) {
+        filter = getCvdFilter(cvdType, severity);
+        FILTERS.set(key, filter);
+    }
+    return filter;
+};
+
+// A simulation depends only on the color's value, so it is computed once per
+// color and condition and reused while that color is unchanged. Returning the
+// same object each time also lets the memoized distances in deltaE.js hit for
+// it. The flags are copied on every call because they are not part of the
+// value and may have changed since.
+//
+// culori's filters convert to rgb, transform there, and convert back to the
+// input's mode. Handing them the memoized rgb skips the first step, which
+// deltaE.js needs too; the result goes back the way culori would take it.
+const simulateColor = (color, filter, key, isNormal) => {
+    const memo = memoFor(color);
+    let newColor = memo?.cvd?.get(key);
+    if (!newColor) {
+        const simulated =
+            isNormal || !memo
+                ? filter(color)
+                : convertMemoized(filter(convertMemoized(color, memo, 'rgb')), null, color.mode);
+        newColor = createColor(simulated);
+        if (memo) {
+            (memo.cvd ??= new Map()).set(key, newColor);
+        }
+    }
     newColor.fixedColor = color.fixedColor;
     newColor.fixedOrder = color.fixedOrder;
     return newColor;
-}
+};
 
 const simulateCvd = (state, cvdType, severity) => {
-    const { colors } = state;
-    const cvdColors = colors.map((color) => applyCvdToColor(color, cvdType, severity));
+    const key = `${cvdType}|${severity}`;
+    const filter = getCachedCvdFilter(key, cvdType, severity);
+    const isNormal = cvdType === 'Normal';
+    const cvdColors = state.colors.map((color) => simulateColor(color, filter, key, isNormal));
     return { ...state, colors: cvdColors };
 }
 
