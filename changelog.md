@@ -20,8 +20,9 @@
 
   The caches only skip work: memoized conversions take culori's own steps, and
   distances come from culori's own functions. Seeded runs reproduce 3.0.1's
-  palettes and costs bit for bit (28 of 28 in `bench/perf.js`, plus a test).
-  A color edited in place is detected by its channel values and recomputed.
+  palettes and costs bit for bit (28 of 28 in `bench/perf.js`), and a test
+  compares seeded runs with the caches on and off. A color edited in place is
+  detected by its channel values and recomputed.
   `node bench/perf.js` reproduces the timings.
 
 ## 3.0.1

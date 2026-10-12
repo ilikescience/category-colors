@@ -16,6 +16,13 @@ const MEMO = Symbol('category-colors memo');
 // Creation order, so any two memos can agree which of them is newer.
 let nextId = 0;
 
+// Off, every caller takes culori's own path with nothing cached. That is the
+// reference the caches must reproduce exactly, so tests compare against it.
+let enabled = true;
+const setMemoization = (on) => {
+    enabled = on;
+};
+
 const matchesAll = (color, channels, values) => {
     for (let i = 0; i < channels.length; i++) {
         if (color[channels[i]] !== values[i]) {
@@ -65,7 +72,7 @@ const layoutFor = (mode) => {
  * themselves), and callers then compute without caching.
  */
 const memoFor = (color) => {
-    if (color === null || typeof color !== 'object') {
+    if (!enabled || color === null || typeof color !== 'object') {
         return null;
     }
     const existing = color[MEMO];
@@ -132,4 +139,4 @@ const convertMemoized = (color, memo, mode) => {
     return result;
 };
 
-export { memoFor, convertMemoized, converterTo };
+export { memoFor, convertMemoized, converterTo, setMemoization };

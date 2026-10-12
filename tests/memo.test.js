@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { converter, differenceCiede2000, differenceCie94, filterDeficiencyDeuter } from 'culori';
 import {
+    avoid,
     cost,
     createColor,
     createDefaultConfig,
@@ -11,6 +12,7 @@ import {
     simulateCvd,
 } from '../src/index.js';
 import { pairwiseDeltaE } from '../src/utils/deltaE.js';
+import { setMemoization } from '../src/utils/colorMemo.js';
 import { withSeed } from '../bench/seed.js';
 
 // deltaE, simulateCvd and the evaluators cache what they derive from each
@@ -164,40 +166,42 @@ test('a full run ends on the cost a cold evaluation gives', () => {
     assert.equal(cost({ ...final, colors: fresh }, config), final.cost);
 });
 
-// Captured from 3.0.1, before any of this caching existed. The caches only
-// skip work, so seeded runs must still reproduce these exactly. If a change
-// to the algorithm itself moves them, regenerate them on purpose.
-test('seeded runs reproduce the palettes generated before caching', () => {
+// The caches only skip work, so a seeded run must produce the same palette,
+// iteration count and cost to the last bit with them as without them. Compared
+// on the same machine rather than against stored values, because the last bits
+// of the floating-point math differ between platforms.
+test('seeded runs are bit-identical with and without memoization', () => {
+    const scenarios = [];
+
+    const library = createDefaultConfig();
+    library.colorCount = 6;
+    scenarios.push([
+        library,
+        { colors: [{ color: '#d83f41', fixedColor: true }, { color: '#215bef', lockedChannels: [0] }] },
+    ]);
+
+    const oklch = createDefaultConfig();
+    oklch.colorCount = 5;
+    oklch.colorDistance = { method: 'cie94' };
+    oklch.colorSpace = { mode: 'oklch', ranges: [[0.3, 0.9], [0.02, 0.32], [0, 360]] };
+    oklch.evalFunctions.push({ function: avoid, weight: 0.5, colors: ['#00ff00'] });
+    scenarios.push([oklch, { colors: [] }]);
+
     const run = (config, state) =>
         withSeed(7, () => {
             const final = runWithOrderOptimization(prepareInitialState(state, config), config);
             return { colors: final.colors.map(String), cost: final.cost, iterations: final.iterations };
         });
 
-    const okhslConfig = createDefaultConfig();
-    okhslConfig.logProgress = false;
-    okhslConfig.colorCount = 6;
-    okhslConfig.maxIterations = 1500;
-    assert.deepEqual(
-        run(okhslConfig, {
-            colors: [{ color: '#d83f41', fixedColor: true }, { color: '#215bef', lockedChannels: [0] }],
-        }),
-        {
-            colors: ['#e0e2eb', '#d83f41', '#741463', '#524238', '#1f408b', '#7c1b31'],
-            cost: 293.14765861651915,
-            iterations: 1500,
+    for (const [config, state] of scenarios) {
+        config.logProgress = false;
+        config.maxIterations = 1500;
+        const cached = run(config, state);
+        setMemoization(false);
+        try {
+            assert.deepEqual(cached, run(config, state));
+        } finally {
+            setMemoization(true);
         }
-    );
-
-    const oklchConfig = createDefaultConfig();
-    oklchConfig.logProgress = false;
-    oklchConfig.colorCount = 5;
-    oklchConfig.maxIterations = 1500;
-    oklchConfig.colorDistance = { method: 'cie94' };
-    oklchConfig.colorSpace = { mode: 'oklch', ranges: [[0.3, 0.9], [0.02, 0.32], [0, 360]] };
-    assert.deepEqual(run(oklchConfig, { colors: [] }), {
-        colors: ['#ffa600', '#600000', '#d8f100', '#950000', '#ffb200'],
-        cost: 420.300906853935,
-        iterations: 1500,
-    });
+    }
 });
