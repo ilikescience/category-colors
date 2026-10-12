@@ -2,7 +2,7 @@
 // uses the Munkres algorithm to find the minimum weight assignment of the distance matrix
 
 import { minWeightAssign } from 'munkres-algorithm';
-import { deltaE } from '../../utils/deltaE.js';
+import { pairwiseDeltaE } from '../../utils/deltaE.js';
 import { resolveDistanceOptions, getMaxDistance } from '../../utils/distanceOptions.js';
 import { sanitizePalette } from '../../utils/colorSpaceTools.js';
 
@@ -32,12 +32,12 @@ const normalizeDifference = (difference, maxDistance) => {
     return Math.max(0, Math.min(difference / maxDistance, 1));
 };
 
-const buildCostMatrix = (array1, array2, distanceOptions, maxDistance) => {
+const buildCostMatrix = (array1, array2, distance, maxDistance) => {
     const matrix = [];
     for (let i = 0; i < array1.length; i++) {
         const row = [];
         for (let j = 0; j < array2.length; j++) {
-            const diff = deltaE(array1[i], array2[j], distanceOptions);
+            const diff = distance(i, j);
             row.push(normalizeDifference(diff, maxDistance));
         }
         matrix.push(row);
@@ -58,9 +58,10 @@ const evaluateSimilarity = (state, config) => {
     }
 
     const maxDistance = getMaxDistance(distanceOptions);
+    const distance = pairwiseDeltaE(colors, targetColors, distanceOptions);
 
     const { assignments } = minWeightAssign(
-        buildCostMatrix(colors, targetColors, distanceOptions, maxDistance)
+        buildCostMatrix(colors, targetColors, distance, maxDistance)
     );
 
     let distanceSum = 0;
@@ -68,7 +69,7 @@ const evaluateSimilarity = (state, config) => {
         if (assignments[i] === null) {
             distanceSum += 1;
         } else {
-            const diff = deltaE(colors[i], targetColors[assignments[i]], distanceOptions);
+            const diff = distance(i, assignments[i]);
             distanceSum += normalizeDifference(diff, maxDistance);
         }
     }

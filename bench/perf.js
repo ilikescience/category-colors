@@ -23,7 +23,7 @@ import {
     range,
     runWithOrderOptimization,
 } from '../src/index.js';
-import { scorePalette } from './metrics.js';
+import { aggregate, scorePalette } from './metrics.js';
 import { withSeed } from './seed.js';
 
 const parseArgs = (argv) => {
@@ -34,17 +34,22 @@ const parseArgs = (argv) => {
             if (i + 1 >= argv.length) throw new Error(`Missing value for ${arg}.`);
             return argv[++i];
         };
-        const positiveInt = (raw) => {
+        const int = (raw, min) => {
             const value = Number(raw);
-            if (!Number.isInteger(value) || value < 1) {
-                throw new Error(`${arg} takes positive integers; received "${raw}".`);
+            if (!Number.isInteger(value) || value < min) {
+                throw new Error(`${arg} takes integers >= ${min}; received "${raw}".`);
             }
             return value;
         };
-        if (arg === '--colors' || arg === '-n') options.colors = next().split(',').map(positiveInt);
-        else if (arg === '--seeds') options.seeds = positiveInt(next());
-        else if (arg === '--seed' || arg === '-s') options.seed = positiveInt(next());
-        else if (arg === '--format' || arg === '-f') options.format = next();
+        if (arg === '--colors' || arg === '-n') options.colors = next().split(',').map((raw) => int(raw, 2));
+        else if (arg === '--seeds') options.seeds = int(next(), 1);
+        else if (arg === '--seed' || arg === '-s') options.seed = int(next(), 0);
+        else if (arg === '--format' || arg === '-f') {
+            options.format = next();
+            if (options.format !== 'text' && options.format !== 'json') {
+                throw new Error(`--format must be text or json; received "${options.format}".`);
+            }
+        }
         else if (arg === '--output' || arg === '-o') options.output = next();
         else throw new Error(`Unknown option: ${arg}`);
     }
@@ -89,14 +94,20 @@ const generate = (colorCount, seed) =>
             usPerIteration: (cpuMs * 1000) / state.iterations,
             cost: state.cost,
             minDeltaE: score.minDeltaE,
-            worstMinDeltaE: Math.min(score.minDeltaE, ...Object.values(score.cvd)),
+            worstMinDeltaE: Math.min(score.minDeltaE, score.minCvdDeltaE),
             colors,
         };
     });
 
-const mean = (values) => values.reduce((sum, v) => sum + v, 0) / values.length;
+const mean = (runs, pick) => aggregate(runs, pick).mean;
 
-const options = parseArgs(process.argv.slice(2));
+let options;
+try {
+    options = parseArgs(process.argv.slice(2));
+} catch (error) {
+    console.error(`bench: ${error.message}`);
+    process.exit(1);
+}
 const runs = [];
 for (const colorCount of options.colors) {
     for (let k = 0; k < options.seeds; k += 1) {
@@ -118,11 +129,11 @@ if (options.format === 'text') {
     for (const colorCount of options.colors) {
         const group = runs.filter((run) => run.colorCount === colorCount);
         console.log(
-            `${String(colorCount).padStart(6)} ${mean(group.map((r) => r.cpuMs)).toFixed(0).padStart(8)} ` +
-                `${mean(group.map((r) => r.usPerIteration)).toFixed(1).padStart(7)} ` +
-                `${mean(group.map((r) => r.minDeltaE)).toFixed(2).padStart(7)} ` +
-                `${mean(group.map((r) => r.worstMinDeltaE)).toFixed(2).padStart(7)} ` +
-                `${mean(group.map((r) => r.cost)).toFixed(4)}`
+            `${String(colorCount).padStart(6)} ${mean(group, (r) => r.cpuMs).toFixed(0).padStart(8)} ` +
+                `${mean(group, (r) => r.usPerIteration).toFixed(1).padStart(7)} ` +
+                `${mean(group, (r) => r.minDeltaE).toFixed(2).padStart(7)} ` +
+                `${mean(group, (r) => r.worstMinDeltaE).toFixed(2).padStart(7)} ` +
+                `${mean(group, (r) => r.cost).toFixed(4)}`
         );
     }
 }

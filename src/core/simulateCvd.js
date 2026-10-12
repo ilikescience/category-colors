@@ -11,7 +11,7 @@
 // physiological model of achromatopsia and must not be described as one.
 
 import { createColor } from '../utils/paletteColor.js';
-import { convertMemoized, memoFor } from '../utils/colorMemo.js';
+import { convertMemoized, converterTo, memoFor } from '../utils/colorMemo.js';
 import {
     filterDeficiencyProt,
     filterDeficiencyDeuter,
@@ -19,11 +19,15 @@ import {
     filterGrayscale,
 } from 'culori';
 
-const getCvdFilter = (cvdType, severity) => {
-    if (cvdType === "Normal") {
-        return (color) => color; // No transformation for normal vision
-    }
+// Normal vision passes each color through unchanged, as it always has.
+const withFlagsOf = (color) => {
+    const newColor = createColor(color);
+    newColor.fixedColor = color.fixedColor;
+    newColor.fixedOrder = color.fixedOrder;
+    return newColor;
+};
 
+const getCvdFilter = (cvdType, severity) => {
     // Extract the base type from cvdType (e.g., "protanomaly" from "protanomaly_0.5")
     const baseType = cvdType.split(/_/)[0].toLowerCase();
 
@@ -44,12 +48,18 @@ const getCvdFilter = (cvdType, severity) => {
     }
 };
 
-// Building a filter computes its matrix, so build each one once.
+// Building a filter computes its matrix, so build each one once. Severity is
+// caller-supplied and continuous, so a long-lived process could otherwise
+// collect one entry per value it has ever seen.
 const FILTERS = new Map();
+const MAX_FILTERS = 64;
 
 const getCachedCvdFilter = (key, cvdType, severity) => {
     let filter = FILTERS.get(key);
     if (!filter) {
+        if (FILTERS.size >= MAX_FILTERS) {
+            FILTERS.clear();
+        }
         filter = getCvdFilter(cvdType, severity);
         FILTERS.set(key, filter);
     }
@@ -57,23 +67,20 @@ const getCachedCvdFilter = (key, cvdType, severity) => {
 };
 
 // A simulation depends only on the color's value, so it is computed once per
-// color and condition and reused while that color is unchanged. Returning the
-// same object each time also lets the memoized distances in deltaE.js hit for
-// it. The flags are copied on every call because they are not part of the
-// value and may have changed since.
+// color and condition and reused while that color is unchanged; returning the
+// same object also lets distances to it stay cached. The flags are copied on
+// each call because they are not part of the value.
 //
 // culori's filters convert to rgb, transform there, and convert back to the
 // input's mode. Handing them the memoized rgb skips the first step, which
-// deltaE.js needs too; the result goes back the way culori would take it.
-const simulateColor = (color, filter, key, isNormal) => {
+// deltaE needs too; the result goes back the way culori would take it.
+const simulateColor = (color, filter, key) => {
     const memo = memoFor(color);
     let newColor = memo?.cvd?.get(key);
     if (!newColor) {
-        const simulated =
-            isNormal || !memo
-                ? filter(color)
-                : convertMemoized(filter(convertMemoized(color, memo, 'rgb')), null, color.mode);
-        newColor = createColor(simulated);
+        newColor = createColor(
+            memo ? converterTo(color.mode)(filter(convertMemoized(color, memo, 'rgb'))) : filter(color)
+        );
         if (memo) {
             (memo.cvd ??= new Map()).set(key, newColor);
         }
@@ -84,11 +91,12 @@ const simulateColor = (color, filter, key, isNormal) => {
 };
 
 const simulateCvd = (state, cvdType, severity) => {
+    if (cvdType === 'Normal') {
+        return { ...state, colors: state.colors.map(withFlagsOf) };
+    }
     const key = `${cvdType}|${severity}`;
     const filter = getCachedCvdFilter(key, cvdType, severity);
-    const isNormal = cvdType === 'Normal';
-    const cvdColors = state.colors.map((color) => simulateColor(color, filter, key, isNormal));
-    return { ...state, colors: cvdColors };
-}
+    return { ...state, colors: state.colors.map((color) => simulateColor(color, filter, key)) };
+};
 
 export default simulateCvd;

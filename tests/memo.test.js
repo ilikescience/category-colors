@@ -10,7 +10,7 @@ import {
     runWithOrderOptimization,
     simulateCvd,
 } from '../src/index.js';
-import { paletteDeltaE } from '../src/utils/deltaE.js';
+import { pairwiseDeltaE } from '../src/utils/deltaE.js';
 import { withSeed } from '../bench/seed.js';
 
 // deltaE, simulateCvd and the evaluators cache what they derive from each
@@ -65,13 +65,13 @@ test('changing a color to another mode in place invalidates it', () => {
     assert.equal(deltaE(a, b, DISTANCE), ciede2000(a, b));
 });
 
-test('paletteDeltaE agrees with deltaE and sees edits made between calls', () => {
+test('pairwiseDeltaE agrees with deltaE and sees edits made between calls', () => {
     const colors = [okhsl(10, 0.5, 0.5), okhsl(200, 0.7, 0.4), okhsl(90, 0.3, 0.8)];
-    const first = paletteDeltaE(colors, DISTANCE);
+    const first = pairwiseDeltaE(colors, colors, DISTANCE);
     assert.equal(first(0, 2), deltaE(colors[0], colors[2], DISTANCE));
 
     colors[2].s = 0.6;
-    const second = paletteDeltaE(colors, DISTANCE);
+    const second = pairwiseDeltaE(colors, colors, DISTANCE);
     assert.equal(second(0, 2), ciede2000(colors[0], colors[2]));
 });
 
@@ -119,6 +119,25 @@ test('the memo is invisible to enumeration, copies and comparison', () => {
     assert.deepEqual(Object.keys(color), keys);
     assert.deepEqual(Object.getOwnPropertySymbols({ ...color }), []);
     assert.equal(JSON.stringify(color), JSON.stringify({ ...color }));
+});
+
+// culori reads an object with no mode as already being in the space it is
+// converted to, so { l, a, b } is measured as Lab. A memo can't express that,
+// and with no registered channels it couldn't notice an edit either.
+test('colors with no mode are measured the way culori measures them, edits included', () => {
+    const a = { l: 50, a: 10, b: 20 };
+    const b = { l: 60, a: -10, b: 5 };
+    assert.equal(deltaE(a, b, DISTANCE), ciede2000(a, b));
+    a.l = 90;
+    assert.equal(deltaE(a, b, DISTANCE), ciede2000(a, b));
+    assert.equal(pairwiseDeltaE([a], [b], DISTANCE)(0, 0), ciede2000(a, b));
+});
+
+test('a NaN channel is measured without a memo rather than re-memoized on every read', () => {
+    const a = okhsl(NaN, 0.5, 0.5);
+    const b = okhsl(200, 0.7, 0.4);
+    assert.ok(Object.is(deltaE(a, b, DISTANCE), ciede2000(a, b)));
+    assert.deepEqual(Object.getOwnPropertySymbols(a), []);
 });
 
 test('colors that cannot hold a memo are measured without one', () => {
