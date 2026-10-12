@@ -1,4 +1,4 @@
-import { deltaE } from '../utils/deltaE.js';
+import { pairwiseDeltaE } from '../utils/deltaE.js';
 import { resolveDistanceOptions } from '../utils/distanceOptions.js';
 
 // Exhaustive search is O(n!); beyond this many colors, fall back to a
@@ -11,11 +11,11 @@ const buildDistanceMatrix = (state, config) => {
     }
     const length = state.colors.length;
     const matrix = Array.from({ length }, () => new Float64Array(length));
-    const distanceOptions = resolveDistanceOptions(config);
+    const between = pairwiseDeltaE(state.colors, state.colors, resolveDistanceOptions(config));
     for (let i = 0; i < length; i++) {
         matrix[i][i] = 0;
         for (let j = i + 1; j < length; j++) {
-            const distance = deltaE(state.colors[i], state.colors[j], distanceOptions);
+            const distance = between(i, j);
             matrix[i][j] = distance;
             matrix[j][i] = distance;
         }

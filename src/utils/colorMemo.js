@@ -1,29 +1,22 @@
 import { converter, getMode } from 'culori';
 
-// Values derived from a color, such as its Lab coordinates, its CVD
-// simulations and its distances to other colors, are what the annealing loop
-// spends its time recomputing. Each step changes one color and leaves the rest
-// as the same objects, so keying derived values by object identity makes every
-// unchanged color free.
+// Each annealing step changes one color and leaves the rest as the same
+// objects, so whatever is derived from a color (its Lab and rgb coordinates,
+// its CVD simulations, its distances to other colors) is memoized on the
+// object. Each memo records the channel values it was derived from and is
+// replaced when they no longer match, so a color edited in place is never
+// served stale values.
 //
-// Identity alone would trust a color that was edited in place, so each memo
-// also records the channel values it was derived from and is replaced when
-// they no longer match. That check is a few comparisons, far cheaper than any
-// conversion, and it keeps a stale value from ever being returned.
-//
-// The memo lives on the color under a non-enumerable symbol rather than in a
-// WeakMap. The loop creates and discards several colors per step, and keeping
-// them in a WeakMap cost about a quarter of the run in hash and GC work. A
-// non-enumerable symbol is skipped by spread, Object.assign, JSON and
-// structuredClone, so copies never carry it; and if one did, the value check
-// would still reject it unless the values were identical, in which case the
-// memo is correct for the copy too.
+// The memo sits under a non-enumerable symbol rather than in a WeakMap: the
+// loop creates and discards several colors per step, and a WeakMap cost about
+// a quarter of the run in hashing and GC. Spread, Object.assign, JSON and
+// structuredClone all skip the symbol.
 const MEMO = Symbol('category-colors memo');
 
 // Creation order, so any two memos can agree which of them is newer.
 let nextId = 0;
 
-const matchesAny = (color, channels, values) => {
+const matchesAll = (color, channels, values) => {
     for (let i = 0; i < channels.length; i++) {
         if (color[channels[i]] !== values[i]) {
             return false;
@@ -34,7 +27,8 @@ const matchesAny = (color, channels, values) => {
 
 // The loop above reads channels by computed key, which costs more than the
 // rest of a cache hit combined. The layouts the working spaces use get checks
-// that name their properties instead.
+// that name their properties instead; one generated closure per layout would
+// share a call site's feedback across modes and run about seven times slower.
 const LAYOUT_CHECKS = {
     'h,s,l,alpha': (c, v) => c.h === v[0] && c.s === v[1] && c.l === v[2] && c.alpha === v[3],
     'l,c,h,alpha': (c, v) => c.l === v[0] && c.c === v[1] && c.h === v[2] && c.alpha === v[3],
@@ -44,16 +38,21 @@ const LAYOUT_CHECKS = {
 
 const LAYOUTS = new Map();
 
+// Null for a missing or unregistered mode: with no channels to compare, a
+// memo could never notice an edit. culori also reads a mode-less object as
+// being in whatever space it is converted to, which a memo can't express.
 const layoutFor = (mode) => {
     let layout = LAYOUTS.get(mode);
-    if (!layout) {
-        const channels = getMode(mode)?.channels ?? [];
-        layout = {
-            channels,
-            check:
-                LAYOUT_CHECKS[channels.join(',')] ??
-                ((color, values) => matchesAny(color, channels, values)),
-        };
+    if (layout === undefined) {
+        const channels = getMode(mode)?.channels;
+        layout = channels
+            ? {
+                  channels,
+                  check:
+                      LAYOUT_CHECKS[channels.join(',')] ??
+                      ((color, values) => matchesAll(color, channels, values)),
+              }
+            : null;
         LAYOUTS.set(mode, layout);
     }
     return layout;
@@ -62,7 +61,8 @@ const layoutFor = (mode) => {
 /**
  * The memo for a color object: a plain object callers store derived values
  * on. Returns null for anything that cannot hold one (CSS strings, frozen
- * objects), which callers treat as "compute without caching".
+ * objects, unknown modes, NaN channels, which never compare equal to
+ * themselves), and callers then compute without caching.
  */
 const memoFor = (color) => {
     if (color === null || typeof color !== 'object') {
@@ -72,15 +72,19 @@ const memoFor = (color) => {
     if (existing && existing.mode === color.mode && existing.check(color, existing.values)) {
         return existing;
     }
-    if (!Object.isExtensible(color)) {
+    const layout = layoutFor(color.mode);
+    if (!layout || !Object.isExtensible(color)) {
         return null;
     }
-    const { channels, check } = layoutFor(color.mode);
+    const values = layout.channels.map((channel) => color[channel]);
+    if (values.some(Number.isNaN)) {
+        return null;
+    }
     const memo = {
         id: nextId++,
         mode: color.mode,
-        check,
-        values: channels.map((channel) => color[channel]),
+        check: layout.check,
+        values,
         converted: null,
         cvd: null,
         distances: null,
@@ -128,4 +132,4 @@ const convertMemoized = (color, memo, mode) => {
     return result;
 };
 
-export { memoFor, convertMemoized };
+export { memoFor, convertMemoized, converterTo };

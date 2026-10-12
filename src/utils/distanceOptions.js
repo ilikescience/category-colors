@@ -1,5 +1,5 @@
 import { createColor } from './paletteColor.js';
-import { deltaE } from './deltaE.js';
+import { deltaE, metricFor } from './deltaE.js';
 
 const DEFAULT_REFERENCE_COLORS = [
     '#000000',
@@ -13,7 +13,6 @@ const DEFAULT_REFERENCE_COLORS = [
 ];
 
 const REFERENCE_COLORS = DEFAULT_REFERENCE_COLORS.map((hex) => createColor(hex));
-const MAX_DISTANCE_CACHE = new Map();
 
 const resolveDistanceOptions = (config = {}, overrides = {}) => {
     const distanceConfig = config.colorDistance || {};
@@ -42,13 +41,11 @@ const getMaxDistance = (options = {}) => {
         return options.maxDistance;
     }
 
-    const method = options.method || 'ciede2000';
-    const space = options.space || 'lab65';
-    // Read on every evaluation, so the key is a plain concatenation.
-    const key = `${method}|${space}|${options.cmc ? JSON.stringify(options.cmc) : ''}`;
-
-    if (MAX_DISTANCE_CACHE.has(key)) {
-        return MAX_DISTANCE_CACHE.get(key);
+    // Cached on the metric's record, which deltaE already keys by the
+    // options that matter.
+    const metric = metricFor(options);
+    if (metric.maxDistance !== undefined) {
+        return metric.maxDistance;
     }
 
     let maxDistance = 0;
@@ -65,7 +62,7 @@ const getMaxDistance = (options = {}) => {
         maxDistance = 1;
     }
 
-    MAX_DISTANCE_CACHE.set(key, maxDistance);
+    metric.maxDistance = maxDistance;
     return maxDistance;
 };
 

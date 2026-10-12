@@ -5,7 +5,7 @@
 // unlike similarity targets they are deliberately not coerced into the
 // working color space, since the point is distance from the exact color.
 
-import { deltaE } from '../../utils/deltaE.js';
+import { pairwiseDeltaE } from '../../utils/deltaE.js';
 import { resolveDistanceOptions, getMaxDistance } from '../../utils/distanceOptions.js';
 import { createColor } from '../../utils/paletteColor.js';
 
@@ -46,11 +46,12 @@ const evaluateAvoid = (state, config, descriptor = {}) => {
     const distanceOptions = resolveDistanceOptions(config);
     const radiusDistance = radius * getMaxDistance(distanceOptions);
 
+    const distance = pairwiseDeltaE(colors, avoidColors, distanceOptions);
     let cost = 0;
     for (let i = 0; i < colors.length; i++) {
         let nearest = Infinity;
         for (let j = 0; j < avoidColors.length; j++) {
-            const diff = deltaE(colors[i], avoidColors[j], distanceOptions);
+            const diff = distance(i, j);
             // A non-finite distance tells us nothing about proximity, so skip
             // it: an unmeasurable avoid color leaves this color unpenalized
             // rather than counting as an exact hit.
