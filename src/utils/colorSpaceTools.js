@@ -106,7 +106,6 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
     if (paletteColor.fixedColor) {
         return paletteColor;
     }
-    const originalHex = typeof paletteColor.toString === 'function' ? paletteColor.toString() : '#000000';
     const fixedColor = paletteColor.fixedColor;
     const fixedOrder = paletteColor.fixedOrder;
     const lockedChannels = paletteColor.lockedChannels || [];
@@ -145,6 +144,8 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
     });
 
     if (!silent && gamutAdjusted) {
+        // Formatting converts to sRGB, so it waits until there is a warning.
+        const originalHex = typeof paletteColor.toString === 'function' ? paletteColor.toString() : '#000000';
         console.warn(
             `[colorSpace] ${context}: color ${originalHex} adjusted to fit ${mode} gamut.`
         );

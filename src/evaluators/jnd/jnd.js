@@ -1,4 +1,4 @@
-import { deltaE } from '../../utils/deltaE.js';
+import { paletteDeltaE } from '../../utils/deltaE.js';
 import { resolveDistanceOptions } from '../../utils/distanceOptions.js';
 
 // A revised JND evaluation with a continuous penalty
@@ -7,13 +7,11 @@ const evaluateJnd = (state, config) => {
   const { colors } = state;
   let cost = 0;
   const numPairs = (colors.length * (colors.length - 1)) / 2;
-  const distanceOptions = resolveDistanceOptions(config);
+  const distance = paletteDeltaE(colors, resolveDistanceOptions(config));
 
   for (let i = 0; i < colors.length; i++) {
     for (let j = i + 1; j < colors.length; j++) {
-      const color1 = colors[i];
-      const color2 = colors[j];
-      const difference = deltaE(color1, color2, distanceOptions);
+      const difference = distance(i, j);
 
       // If deltaE is less than JND, cost increases exponentially.
       // If deltaE is greater than JND, cost is small but non-zero.

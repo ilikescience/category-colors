@@ -44,11 +44,8 @@ const getMaxDistance = (options = {}) => {
 
     const method = options.method || 'ciede2000';
     const space = options.space || 'lab65';
-    const key = JSON.stringify({
-        method,
-        space,
-        cmc: options.cmc || null,
-    });
+    // Read on every evaluation, so the key is a plain concatenation.
+    const key = `${method}|${space}|${options.cmc ? JSON.stringify(options.cmc) : ''}`;
 
     if (MAX_DISTANCE_CACHE.has(key)) {
         return MAX_DISTANCE_CACHE.get(key);

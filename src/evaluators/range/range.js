@@ -1,4 +1,4 @@
-import { deltaE } from '../../utils/deltaE.js';
+import { paletteDeltaE } from '../../utils/deltaE.js';
 import { resolveDistanceOptions } from '../../utils/distanceOptions.js';
 
 const calculateUniformityMetric = (arr) => {
@@ -23,13 +23,10 @@ const calculateUniformityMetric = (arr) => {
 
 const evaluateRange = (state, config) => {
     const distances = [];
-    const distanceOptions = resolveDistanceOptions(config);
+    const distance = paletteDeltaE(state.colors, resolveDistanceOptions(config));
     for (let i = 0; i < state.colors.length; i++) {
         for (let j = i + 1; j < state.colors.length; j++) {
-            const color = state.colors[i];
-            const compareColor = state.colors[j];
-            const thisDistance = deltaE(color, compareColor, distanceOptions);
-            distances.push(thisDistance);
+            distances.push(distance(i, j));
         }
     }
     return 1 - calculateUniformityMetric(distances);
