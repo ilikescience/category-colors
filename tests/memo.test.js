@@ -154,55 +154,48 @@ test('colors that cannot hold a memo are measured without one', () => {
 // pairwiseDistances hands evaluators a matrix of distances and refills only
 // the rows of colors that changed since a palette it has seen. Every value it
 // returns must be what computing the pair afresh gives.
-const expectDistances = (colors, matrix, both) => {
+const expectDistances = (colors, matrix) => {
     const n = colors.length;
     for (let i = 0; i < n; i++) {
-        for (let j = both ? 0 : i + 1; j < n; j++) {
-            if (i === j) continue;
+        for (let j = i + 1; j < n; j++) {
             assert.equal(matrix[i * n + j], ciede2000(colors[i], colors[j]), `pair ${i},${j}`);
         }
     }
 };
 
-test('pairwiseDistances matches culori, one way and then both ways', () => {
+test('pairwiseDistances matches culori', () => {
     const colors = [okhsl(10, 0.5, 0.5), okhsl(200, 0.7, 0.4), okhsl(90, 0.3, 0.8), okhsl(300, 0.6, 0.6)];
-    expectDistances(colors, pairwiseDistances(colors, DISTANCE), false);
-    expectDistances(colors, pairwiseDistances(colors, DISTANCE, true), true);
+    expectDistances(colors, pairwiseDistances(colors, DISTANCE));
 });
 
 test('pairwiseDistances refills the row and column of a color edited in place', () => {
     const colors = [okhsl(10, 0.5, 0.5), okhsl(200, 0.7, 0.4), okhsl(90, 0.3, 0.8), okhsl(300, 0.6, 0.6)];
-    pairwiseDistances(colors, DISTANCE, true);
+    pairwiseDistances(colors, DISTANCE);
     colors[2].h = 150;
-    expectDistances(colors, pairwiseDistances(colors, DISTANCE, true), true);
+    expectDistances(colors, pairwiseDistances(colors, DISTANCE));
     colors[0].l = 0.2;
     colors[3].s = 0.3;
-    expectDistances(colors, pairwiseDistances(colors, DISTANCE), false);
-    expectDistances(colors, pairwiseDistances(colors, DISTANCE, true), true);
+    expectDistances(colors, pairwiseDistances(colors, DISTANCE));
 });
 
-// Palettes one or two colors apart, growing and shrinking, asked for one
-// direction or both in no fixed pattern: whatever a palette inherits must
-// have no hole left where it is read.
+// Palettes one or two colors apart, growing and shrinking: whatever a
+// palette inherits must have no hole left where it is read.
 test('pairwiseDistances is right for palettes that share colors with cached ones', () => {
     const base = [okhsl(10, 0.5, 0.5), okhsl(200, 0.7, 0.4), okhsl(90, 0.3, 0.8), okhsl(300, 0.6, 0.6)];
-    pairwiseDistances(base, DISTANCE, true);
+    pairwiseDistances(base, DISTANCE);
     for (let round = 0; round < 40; round++) {
         const variant = base.slice();
         variant[round % 4] = okhsl((round * 47) % 360, 0.4 + (round % 3) / 10, 0.5);
         if (round % 5 === 0) variant.push(okhsl(round, 0.5, 0.5));
         if (round % 7 === 0) variant.pop();
-        const both = round % 3 === 0;
-        expectDistances(variant, pairwiseDistances(variant, DISTANCE, both), both);
-        if (round % 4 === 1) expectDistances(variant, pairwiseDistances(variant, DISTANCE, true), true);
+        expectDistances(variant, pairwiseDistances(variant, DISTANCE));
         if (round % 3 === 0) base[round % 4] = variant[round % 4];
     }
 });
 
 test('pairwiseDistances computes without caching when a color cannot hold a memo', () => {
     const colors = [Object.freeze(okhsl(10, 0.5, 0.5)), okhsl(200, 0.7, 0.4), okhsl(90, 0.3, 0.8)];
-    expectDistances(colors, pairwiseDistances(colors, DISTANCE, true), true);
-    expectDistances(colors, pairwiseDistances(colors, DISTANCE), false);
+    expectDistances(colors, pairwiseDistances(colors, DISTANCE));
     assert.deepEqual(Object.getOwnPropertySymbols(colors[0]), []);
 });
 

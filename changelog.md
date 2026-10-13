@@ -4,27 +4,27 @@
 
 ### Fixed
 
-- **CVD terms ignored about 1% of simulated colors.** culori's deficiency
-  filters work in rgb and hand back a color in the palette's own space, and
-  for a simulated color that lands just outside sRGB (a red of 1.04, say)
-  the okhsl conversion produces Lab coordinates in the thousands. Such a color
-  measured as immensely far from every other, so its JND penalty under that
-  condition vanished and the optimizer never pulled it apart from its
-  neighbours. `simulateCvd` now returns the simulated colors in rgb and they
-  are measured from there. Over 30 seeds at the app's defaults the worst
-  CVD separation is unchanged at 8 colors (7.62 → 7.62) and slightly better
-  at 12 (4.77 → 4.84), with the floor over seeds up at both sizes; normal
-  separation gives up about half a ΔE (22.7 → 22.0 at 8 colors) as the
-  optimizer now honours the constraint it was skipping.
+- **CVD terms ignored about 1% of simulated colors in okhsl and okhsv
+  palettes.** culori's deficiency filters work in rgb and hand back a color
+  in the palette's own space. For a simulated color that lands just outside
+  sRGB (a red of 1.04, say; mostly under tritanopia) okhsl has no sensible
+  coordinates, and converting it on to Lab gave values in the thousands. Such
+  a color measured as immensely far from every other, so its JND penalty
+  under that condition vanished and the optimizer never pulled it apart from
+  its neighbours. oklch palettes were not affected. `simulateCvd` now returns
+  the simulated colors in rgb and they are measured from there. Over 30
+  seeds at the app's defaults the worst CVD separation holds at 8 colors
+  (7.62 → 7.62) and improves at 12 (4.77 → 4.84), the worst seed improves at
+  both sizes, and normal separation gives up about half a ΔE (22.7 → 22.0 at
+  8 colors): the constraint the optimizer was skipping now costs something.
 
 ### Changed
 
-- **Same seed, different palette.** This release changes what a step
-  computes in three places, so a seed no longer reproduces a 3.0.x palette.
-  The fix above is one. The `energy` evaluator measures each pair once rather
-  than in both directions (CIEDE2000 differs between the two only in its last
-  bits). The `jnd` evaluator computes its fourth power as two squarings, which
-  V8 does exactly and several times faster than a general power. The quality
+- **Same seed, different palette.** Three changes alter what a step computes,
+  so a seed no longer reproduces a 3.0.x palette: the fix above; `energy`
+  measures each pair once rather than in both directions (CIEDE2000 differs
+  between the two only in its last bits); and `jnd` computes its fourth power
+  as two squarings, several times faster than a general power. The quality
   figures above include all three.
 - **`simulateCvd` returns rgb colors**, whatever space the originals were
   in. Formatting them is unchanged; code that read the simulated colors'
@@ -48,12 +48,11 @@
   | 12 | 53 µs/step, 1.56 s | 41 µs/step, 1.20 s | 1.3× |
   | 20 | 106 µs/step, 3.21 s | 67 µs/step, 2.01 s | 1.6× |
 
-  That change alone kept output identical to the last bit. The three changes
-  under Changed then take the step from the "now" column to, on the same
-  machine: 4 colors 17 µs (0.43 s), 8 colors 21 µs (0.62 s), 12 colors 27 µs
-  (0.81 s), 20 colors 43 µs (1.29 s), a further 1.3–1.5×. A color's Lab and
-  rgb coordinates now have their own fields on its memo rather than a lookup
-  by name.
+  That change alone kept output identical to the last bit. With the changes
+  above as well, a step is 17, 21, 27 and 43 µs at 4, 8, 12 and 20 colors
+  (0.43, 0.62, 0.81 and 1.29 s a generation), a further 1.3–1.5×. A color's
+  Lab and rgb coordinates now have their own fields on its memo rather than
+  a lookup by name.
 
 ## 3.0.2
 
