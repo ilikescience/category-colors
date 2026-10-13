@@ -11,7 +11,7 @@ import {
     runWithOrderOptimization,
     simulateCvd,
 } from '../src/index.js';
-import { pairwiseDeltaE, pairwiseTerms } from '../src/utils/deltaE.js';
+import { pairwiseDeltaE, pairwiseDistances } from '../src/utils/deltaE.js';
 import { setMemoization } from '../src/utils/colorMemo.js';
 import { withSeed } from '../bench/seed.js';
 
@@ -150,62 +150,58 @@ test('colors that cannot hold a memo are measured without one', () => {
     assert.equal(simulateCvd({ colors: [frozen] }, 'grayscale', 1).colors.length, 1);
 });
 
-// pairwiseTerms hands evaluators a matrix of distances, or of a function of
-// them, and refills only the rows of colors that changed since a palette it
-// has seen. Every value it returns must be what computing the pair afresh
-// gives.
-const square = (distance, scale) => (distance * scale) ** 2;
-
-const expectTerms = (colors, matrix, term, parameter, both) => {
+// pairwiseDistances hands evaluators a matrix of distances and refills only
+// the rows of colors that changed since a palette it has seen. Every value it
+// returns must be what computing the pair afresh gives.
+const expectDistances = (colors, matrix, both) => {
     const n = colors.length;
     for (let i = 0; i < n; i++) {
         for (let j = both ? 0 : i + 1; j < n; j++) {
             if (i === j) continue;
-            const expected = ciede2000(colors[i], colors[j]);
-            assert.equal(matrix[i * n + j], term ? term(expected, parameter) : expected, `pair ${i},${j}`);
+            assert.equal(matrix[i * n + j], ciede2000(colors[i], colors[j]), `pair ${i},${j}`);
         }
     }
 };
 
-test('pairwiseTerms matches culori for distances and derived terms, in both directions', () => {
+test('pairwiseDistances matches culori, one way and then both ways', () => {
     const colors = [okhsl(10, 0.5, 0.5), okhsl(200, 0.7, 0.4), okhsl(90, 0.3, 0.8), okhsl(300, 0.6, 0.6)];
-    expectTerms(colors, pairwiseTerms(colors, DISTANCE, null), null, undefined, false);
-    expectTerms(colors, pairwiseTerms(colors, DISTANCE, square, 2), square, 2, false);
-    // The same palette asked for the other direction too, after it was cached one way.
-    expectTerms(colors, pairwiseTerms(colors, DISTANCE, null, undefined, true), null, undefined, true);
-    expectTerms(colors, pairwiseTerms(colors, DISTANCE, square, 2, true), square, 2, true);
-    expectTerms(colors, pairwiseTerms(colors, DISTANCE, square, 3, true), square, 3, true);
+    expectDistances(colors, pairwiseDistances(colors, DISTANCE), false);
+    expectDistances(colors, pairwiseDistances(colors, DISTANCE, true), true);
 });
 
-test('pairwiseTerms refills the row and column of a color edited in place', () => {
+test('pairwiseDistances refills the row and column of a color edited in place', () => {
     const colors = [okhsl(10, 0.5, 0.5), okhsl(200, 0.7, 0.4), okhsl(90, 0.3, 0.8), okhsl(300, 0.6, 0.6)];
-    pairwiseTerms(colors, DISTANCE, square, 2, true);
+    pairwiseDistances(colors, DISTANCE, true);
     colors[2].h = 150;
-    expectTerms(colors, pairwiseTerms(colors, DISTANCE, square, 2, true), square, 2, true);
+    expectDistances(colors, pairwiseDistances(colors, DISTANCE, true), true);
     colors[0].l = 0.2;
     colors[3].s = 0.3;
-    expectTerms(colors, pairwiseTerms(colors, DISTANCE, null, undefined, true), null, undefined, true);
-    expectTerms(colors, pairwiseTerms(colors, DISTANCE, square, 2), square, 2, false);
+    expectDistances(colors, pairwiseDistances(colors, DISTANCE), false);
+    expectDistances(colors, pairwiseDistances(colors, DISTANCE, true), true);
 });
 
-test('pairwiseTerms is right for palettes that share colors with cached ones, at several sizes', () => {
+// Palettes one or two colors apart, growing and shrinking, asked for one
+// direction or both in no fixed pattern: whatever a palette inherits must
+// have no hole left where it is read.
+test('pairwiseDistances is right for palettes that share colors with cached ones', () => {
     const base = [okhsl(10, 0.5, 0.5), okhsl(200, 0.7, 0.4), okhsl(90, 0.3, 0.8), okhsl(300, 0.6, 0.6)];
-    pairwiseTerms(base, DISTANCE, square, 2, true);
-    for (let round = 0; round < 30; round++) {
+    pairwiseDistances(base, DISTANCE, true);
+    for (let round = 0; round < 40; round++) {
         const variant = base.slice();
         variant[round % 4] = okhsl((round * 47) % 360, 0.4 + (round % 3) / 10, 0.5);
         if (round % 5 === 0) variant.push(okhsl(round, 0.5, 0.5));
         if (round % 7 === 0) variant.pop();
-        expectTerms(variant, pairwiseTerms(variant, DISTANCE, square, 2, round % 2 === 0), square, 2, round % 2 === 0);
-        expectTerms(variant, pairwiseTerms(variant, DISTANCE, null), null, undefined, false);
+        const both = round % 3 === 0;
+        expectDistances(variant, pairwiseDistances(variant, DISTANCE, both), both);
+        if (round % 4 === 1) expectDistances(variant, pairwiseDistances(variant, DISTANCE, true), true);
         if (round % 3 === 0) base[round % 4] = variant[round % 4];
     }
 });
 
-test('pairwiseTerms computes without caching when a color cannot hold a memo', () => {
+test('pairwiseDistances computes without caching when a color cannot hold a memo', () => {
     const colors = [Object.freeze(okhsl(10, 0.5, 0.5)), okhsl(200, 0.7, 0.4), okhsl(90, 0.3, 0.8)];
-    expectTerms(colors, pairwiseTerms(colors, DISTANCE, square, 2, true), square, 2, true);
-    expectTerms(colors, pairwiseTerms(colors, DISTANCE, null), null, undefined, false);
+    expectDistances(colors, pairwiseDistances(colors, DISTANCE, true), true);
+    expectDistances(colors, pairwiseDistances(colors, DISTANCE), false);
     assert.deepEqual(Object.getOwnPropertySymbols(colors[0]), []);
 });
 
