@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased
+
+### Performance
+
+- **Pairwise evaluators share one cached matrix per palette.** `energy`,
+  `range` and `jnd` each used to look every pair's cached distance up again,
+  by id, on every step, and recompute their penalty from it, which at 20
+  colors was most of a step. The evaluators now take a matrix of per-pair
+  values from `pairwiseTerms` in `src/utils/deltaE.js`, kept for the last few
+  palettes measured and copied forward to a palette that differs in one
+  color, so a step fills in one row and column and sums the rest. Steps at
+  categorycolors.com's defaults, Node 24, same machine as the 3.0.2 numbers
+  (taken on a busier day, so compare the columns to each other):
+
+  | colors | 3.0.2 | now | |
+  | --- | --- | --- | --- |
+  | 4 | 23 µs/step, 0.56 s | 25 µs/step, 0.61 s | 0.92× |
+  | 8 | 35 µs/step, 1.03 s | 32 µs/step, 0.92 s | 1.12× |
+  | 12 | 57 µs/step, 1.70 s | 47 µs/step, 1.39 s | 1.23× |
+  | 20 | 113 µs/step, 3.40 s | 72 µs/step, 2.17 s | 1.56× |
+
+  Four-color palettes are slightly slower: the matrix bookkeeping is a fixed
+  cost per evaluator call, and at six pairs there is little for it to save.
+  Output is unchanged: the per-pair values are the same numbers summed in the
+  same order, and seeded runs still reproduce 3.0.1's palettes and costs bit
+  for bit (36 of 36 in `bench/perf.js`). CVD simulations are now stored by
+  filter rather than by a key string built on every call, and a color's Lab
+  and rgb coordinates have their own fields on its memo.
+
 ## 3.0.2
 
 ### Performance
