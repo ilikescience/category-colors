@@ -71,16 +71,15 @@ const getCachedCvdFilter = (key, cvdType, severity) => {
 // same object also lets distances to it stay cached. The flags are copied on
 // each call because they are not part of the value.
 //
-// culori's filters convert to rgb, transform there, and convert back to the
-// input's mode. Handing them the memoized rgb skips the first step, which
-// deltaE needs too; the result goes back the way culori would take it.
+// culori's filters work in rgb, so the result is returned in rgb rather than
+// converted back to the input's mode: the evaluators only measure it, which
+// means converting it to Lab, and a round trip through a cylindrical space
+// first is the most expensive step of simulating a palette.
 const simulateColor = (color, filter, key) => {
     const memo = memoFor(color);
     let newColor = memo?.cvd?.get(key);
     if (!newColor) {
-        newColor = createColor(
-            memo ? converterTo(color.mode)(filter(convertMemoized(color, memo, 'rgb'))) : filter(color)
-        );
+        newColor = createColor(filter(memo ? convertMemoized(color, memo, 'rgb') : converterTo('rgb')(color)));
         if (memo) {
             (memo.cvd ??= new Map()).set(key, newColor);
         }

@@ -138,7 +138,7 @@ load it.
 - `runWithOrderOptimization(state, config)` — anneal, then reorder for even adjacent distances.
 - `cost(state, config)` — the weighted average of every evaluator's score.
 - `costBreakdown(state, config)` — the same number itemized per evaluator, in `config.evalFunctions` order. Each entry is `{ weight, cost, weightedCost }`, and the `weightedCost` values sum to `cost(state, config)`.
-- `simulateCvd(state, type, severity)` — a copy of the state with every color passed through a CVD filter.
+- `simulateCvd(state, type, severity)` — a copy of the state with every color passed through a CVD filter. The simulated colors are in rgb, whatever space the originals were in.
 
 ### Configuration and data
 

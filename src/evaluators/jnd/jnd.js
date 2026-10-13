@@ -1,7 +1,9 @@
 import { pairwiseDistances } from '../../utils/deltaE.js';
 import { resolveDistanceOptions } from '../../utils/distanceOptions.js';
 
-// A revised JND evaluation with a continuous penalty
+// A revised JND evaluation with a continuous penalty. The fourth power is two
+// squarings: V8 squares exactly but computes other powers through a general
+// routine several times slower.
 const evaluateJnd = (state, config) => {
   const { jnd } = config;
   const { colors } = state;
@@ -18,7 +20,8 @@ const evaluateJnd = (state, config) => {
       // If deltaE is greater than JND, cost is small but non-zero.
       // This creates a smooth gradient to optimize.
       if (difference > 0) {
-        cost += (jnd / difference) ** 4;
+        const ratio = (jnd / difference) ** 2;
+        cost += ratio * ratio;
       } else {
         // Assign a very high cost for identical colors to avoid division by zero
         cost += 1000;

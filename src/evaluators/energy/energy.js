@@ -17,12 +17,14 @@ const evaluateEnergy = (state, config) => {
         return 0;
     }
 
+    // Each unordered pair once: CIEDE2000 is not symmetric to the last bit,
+    // but the difference is far below anything the optimizer responds to,
+    // and measuring both directions doubled the distances a step computes.
     const n = colors.length;
-    const distances = pairwiseDistances(colors, distanceOptions, true);
+    const distances = pairwiseDistances(colors, distanceOptions);
     let totalEnergy = 0;
     for (let i = 0; i < n; i++) {
-        for (let j = 0; j < n; j++) {
-            if (i === j) continue;
+        for (let j = i + 1; j < n; j++) {
             const difference = distances[i * n + j];
             if (!Number.isFinite(difference)) {
                 continue;
@@ -33,7 +35,7 @@ const evaluateEnergy = (state, config) => {
         }
     }
 
-    return totalEnergy / (n * (n - 1));
+    return totalEnergy / ((n * (n - 1)) / 2);
 };
 
 export default evaluateEnergy;
