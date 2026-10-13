@@ -11,7 +11,7 @@
 // physiological model of achromatopsia and must not be described as one.
 
 import { createColor } from '../utils/paletteColor.js';
-import { convertMemoized, converterTo, memoFor } from '../utils/colorMemo.js';
+import { convertMemoized, memoFor } from '../utils/colorMemo.js';
 import {
     filterDeficiencyProt,
     filterDeficiencyDeuter,
@@ -79,7 +79,7 @@ const simulateColor = (color, filter, key) => {
     const memo = memoFor(color);
     let newColor = memo?.cvd?.get(key);
     if (!newColor) {
-        newColor = createColor(filter(memo ? convertMemoized(color, memo, 'rgb') : converterTo('rgb')(color)));
+        newColor = createColor(filter(convertMemoized(color, memo, 'rgb')));
         if (memo) {
             (memo.cvd ??= new Map()).set(key, newColor);
         }

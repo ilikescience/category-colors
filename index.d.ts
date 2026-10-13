@@ -200,7 +200,6 @@ export function cost(state: State, config: Config): number;
 /** Same computation as `cost`, itemized in `config.evalFunctions` order. */
 export function costBreakdown(state: State, config: Config): EvaluatorCost[];
 
-/** Returns a copy of `state` with each color passed through a simulation filter. */
 /** A copy of `state` with every color simulated under `type`; the simulated colors are in rgb. */
 export function simulateCvd(state: State, type: SimulationType, severity: number): State;
 

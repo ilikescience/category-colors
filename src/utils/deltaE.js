@@ -78,9 +78,8 @@ const metricFor = (options = {}) => {
 // older one's id, so a rejected candidate takes its distances with it and a
 // surviving color only holds entries for the few colors it was compared
 // against. An edited color gets a new memo and id, so nothing computed from
-// its old value is reused. The two directions are kept apart because culori's
-// CIEDE2000 is not symmetric to the last bit, and merging them changes seeded
-// output.
+// its old value is reused. culori's CIEDE2000 differs between the two orders
+// of a pair only in its last bits, so a pair is stored once.
 const measure = (colorA, colorB, memoA, memoB, { diff, space }) =>
     diff(convertMemoized(colorA, memoA, space), convertMemoized(colorB, memoB, space));
 
@@ -88,12 +87,10 @@ const distanceBetween = (colorA, colorB, memoA, memoB, metric) => {
     if (!memoA || !memoB) {
         return measure(colorA, colorB, memoA, memoB, metric);
     }
-    const { slot } = metric;
     const aIsNewer = memoA.id > memoB.id;
     const newer = aIsNewer ? memoA : memoB;
     const olderId = aIsNewer ? memoB.id : memoA.id;
-    const byDirection = ((newer.distances ??= [])[slot] ??= [null, null]);
-    const distances = (byDirection[aIsNewer ? 0 : 1] ??= new Map());
+    const distances = ((newer.distances ??= [])[metric.slot] ??= new Map());
     let distance = distances.get(olderId);
     if (distance === undefined) {
         distance = measure(colorA, colorB, memoA, memoB, metric);
@@ -110,8 +107,7 @@ const deltaE = (colorA, colorB, options = {}) =>
 // The last few palettes measured against themselves keep their distance
 // matrix, identified by their memos. A new palette copies the matrix of the
 // one it shares the most colors with and fills in only the rows and columns
-// of the colors that differ. A value is stored as colors[i] against
-// colors[j], so a copied value is the one the pair would compute again.
+// of the colors that differ.
 const PALETTE_CACHE_SIZE = 12;
 
 // [0, 1, ..., n - 1], one shared array per size: the stale list of a palette
@@ -167,7 +163,7 @@ const entryFor = (metric, memos) => {
             if (shared === n - 1) break;
         }
     }
-    const entry = { memos, matrix: null, both: false, stale: rangeOf(n) };
+    const entry = { memos, matrix: null, stale: rangeOf(n) };
     if (best >= 0) {
         // The palette copied from is the one being varied, so it stays
         // ahead of the rejected variations that would otherwise age it out.
@@ -184,7 +180,6 @@ const entryFor = (metric, memos) => {
             entry.matrix.fill(NaN, i * n, i * n + n);
             for (let j = 0; j < n; j++) entry.matrix[j * n + i] = NaN;
         }
-        entry.both = parent.both;
         entry.stale = stale;
     } else {
         entry.matrix = takeMatrix(n).fill(NaN);
@@ -197,9 +192,9 @@ const entryFor = (metric, memos) => {
     return entry;
 };
 
-// Fills the NaN entries in the rows and columns of `indices`: the pairs
-// i < j, and the pairs i > j as well when `both`.
-const fillFrom = (matrix, n, indices, both, compute) => {
+// Fills the NaN entries above the diagonal in the rows and columns of
+// `indices`.
+const fillFrom = (matrix, n, indices, compute) => {
     for (let s = 0; s < indices.length; s++) {
         const i = indices[s];
         for (let j = 0; j < n; j++) {
@@ -207,7 +202,6 @@ const fillFrom = (matrix, n, indices, both, compute) => {
             const lo = i < j ? i : j;
             const hi = i < j ? j : i;
             if (matrix[lo * n + hi] !== matrix[lo * n + hi]) matrix[lo * n + hi] = compute(lo, hi);
-            if (both && matrix[hi * n + lo] !== matrix[hi * n + lo]) matrix[hi * n + lo] = compute(hi, lo);
         }
     }
 };
@@ -227,29 +221,21 @@ const pairwiseDeltaE = (rows, cols, options = {}) => {
 
 /**
  * An n×n Float64Array of the deltaE between each pair of `colors`, at index
- * i * n + j, for the pairs with i < j, or every pair with i ≠ j when `both`
- * is set. The diagonal is NaN. The matrix is cached, and a palette one color
- * away from a cached one recomputes only that color's row and column. The
- * returned array is only valid until the next call. A pair whose distance is
- * itself NaN is recomputed on every call, which is correct, only slower.
+ * i * n + j for i < j; the rest is NaN. The matrix is cached, and a palette
+ * one color away from a cached one recomputes only that color's row and
+ * column. The returned array is only valid until the next call. A pair whose
+ * distance is itself NaN is recomputed on every call, which is correct, only
+ * slower.
  */
-const pairwiseDistances = (colors, options, both = false) => {
+const pairwiseDistances = (colors, options) => {
     const metric = metricFor(options);
     const memos = colors.map(memoFor);
     const n = colors.length;
     const compute = (i, j) => measure(colors[i], colors[j], memos[i], memos[j], metric);
     const entry = memos.every(Boolean)
         ? entryFor(metric, memos)
-        : { matrix: new Float64Array(n * n).fill(NaN), both: false, stale: rangeOf(n) };
-    // Once a matrix has been asked for both directions it is kept complete
-    // both ways, by every later fill and by the palettes that inherit it, so
-    // a copied matrix never has a hole outside the rows marked stale.
-    if (both && !entry.both) {
-        fillFrom(entry.matrix, n, rangeOf(n), true, compute);
-        entry.both = true;
-    } else {
-        fillFrom(entry.matrix, n, entry.stale, entry.both, compute);
-    }
+        : { matrix: new Float64Array(n * n).fill(NaN), stale: rangeOf(n) };
+    fillFrom(entry.matrix, n, entry.stale, compute);
     return entry.matrix;
 };
 

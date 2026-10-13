@@ -17,9 +17,7 @@ const evaluateEnergy = (state, config) => {
         return 0;
     }
 
-    // Each unordered pair once: CIEDE2000 is not symmetric to the last bit,
-    // but the difference is far below anything the optimizer responds to,
-    // and measuring both directions doubled the distances a step computes.
+    // Each unordered pair once; CIEDE2000's asymmetry is in its last bits.
     const n = colors.length;
     const distances = pairwiseDistances(colors, distanceOptions);
     let totalEnergy = 0;
