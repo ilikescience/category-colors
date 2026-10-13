@@ -82,13 +82,14 @@ test('simulateCvd reuses a simulation only while the color is unchanged', () => 
     const state = { colors: [color] };
     const first = simulateCvd(state, 'deuteranopia', 1).colors[0];
     assert.equal(simulateCvd(state, 'deuteranopia', 1).colors[0], first, 'same object while unchanged');
-    assert.equal(first.l, filterDeficiencyDeuter(1)(color).l);
+    const toRgb = converter('rgb');
+    assert.equal(first.r, filterDeficiencyDeuter(1)(toRgb(color)).r);
 
     color.h = 250;
     const second = simulateCvd(state, 'deuteranopia', 1).colors[0];
     assert.notEqual(second, first);
-    const expected = filterDeficiencyDeuter(1)(color);
-    assert.deepEqual([second.h, second.s, second.l], [expected.h, expected.s, expected.l]);
+    const expected = filterDeficiencyDeuter(1)(toRgb(color));
+    assert.deepEqual([second.r, second.g, second.b], [expected.r, expected.g, expected.b]);
 });
 
 test('simulateCvd keys simulations by condition and severity', () => {
