@@ -2,8 +2,19 @@
 // colors that are close to each other have high potential energy,
 // colors that are far away have low potential energy.
 
-import { pairwiseDeltaE } from '../../utils/deltaE.js';
+import { pairwiseTerms } from '../../utils/deltaE.js';
 import { resolveDistanceOptions, getMaxDistance } from '../../utils/distanceOptions.js';
+
+// Potential energy of one pair: the cube of how far short of the maximum
+// distance it falls. An unmeasurable pair contributes nothing.
+const energyOf = (difference, maxDistance) => {
+    if (!Number.isFinite(difference)) {
+        return 0;
+    }
+    const normalized = Math.max(0, Math.min(difference / maxDistance, 1));
+    const complement = 1 - normalized;
+    return complement * complement * complement;
+};
 
 const evaluateEnergy = (state, config) => {
     const colors = state.colors || [];
@@ -17,18 +28,13 @@ const evaluateEnergy = (state, config) => {
         return 0;
     }
 
-    const distance = pairwiseDeltaE(colors, colors, distanceOptions);
+    const n = colors.length;
+    const energies = pairwiseTerms(colors, distanceOptions, energyOf, maxDistance, true);
     let totalEnergy = 0;
-    for (let i = 0; i < colors.length; i++) {
-        for (let j = 0; j < colors.length; j++) {
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
             if (i === j) continue;
-            const difference = distance(i, j);
-            if (!Number.isFinite(difference)) {
-                continue;
-            }
-            const normalized = Math.max(0, Math.min(difference / maxDistance, 1));
-            const complement = 1 - normalized;
-            totalEnergy += complement * complement * complement;
+            totalEnergy += energies[i * n + j];
         }
     }
 

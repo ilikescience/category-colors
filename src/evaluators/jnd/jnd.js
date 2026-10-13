@@ -1,5 +1,11 @@
-import { pairwiseDeltaE } from '../../utils/deltaE.js';
+import { pairwiseTerms } from '../../utils/deltaE.js';
 import { resolveDistanceOptions } from '../../utils/distanceOptions.js';
+
+// If deltaE is less than JND, cost increases exponentially.
+// If deltaE is greater than JND, cost is small but non-zero.
+// This creates a smooth gradient to optimize. Identical colors get a very
+// high cost rather than a division by zero.
+const penalty = (difference, jnd) => (difference > 0 ? (jnd / difference) ** 4 : 1000);
 
 // A revised JND evaluation with a continuous penalty
 const evaluateJnd = (state, config) => {
@@ -7,21 +13,12 @@ const evaluateJnd = (state, config) => {
   const { colors } = state;
   let cost = 0;
   const numPairs = (colors.length * (colors.length - 1)) / 2;
-  const distance = pairwiseDeltaE(colors, colors, resolveDistanceOptions(config));
+  const n = colors.length;
+  const penalties = pairwiseTerms(colors, resolveDistanceOptions(config), penalty, jnd);
 
-  for (let i = 0; i < colors.length; i++) {
-    for (let j = i + 1; j < colors.length; j++) {
-      const difference = distance(i, j);
-
-      // If deltaE is less than JND, cost increases exponentially.
-      // If deltaE is greater than JND, cost is small but non-zero.
-      // This creates a smooth gradient to optimize.
-      if (difference > 0) {
-        cost += (jnd / difference) ** 4;
-      } else {
-        // Assign a very high cost for identical colors to avoid division by zero
-        cost += 1000;
-      }
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      cost += penalties[i * n + j];
     }
   }
 

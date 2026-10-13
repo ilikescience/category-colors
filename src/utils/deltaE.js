@@ -101,6 +101,134 @@ const distanceBetween = (colorA, colorB, memoA, memoB, metric) => {
 const deltaE = (colorA, colorB, options = {}) =>
     distanceBetween(colorA, colorB, memoFor(colorA), memoFor(colorB), metricFor(options));
 
+// Each annealing step scores a palette that differs from a recently scored
+// one in a single color, and scores it once per evaluator and CVD condition.
+// The last few palettes measured against themselves are kept, identified by
+// their memos, with their distance matrix and the per-pair terms evaluators
+// derived from it. A new palette copies the entry of the one it shares the
+// most colors with and fills in only the rows and columns of the colors that
+// differ. A value is stored as colors[i] against colors[j], so a copied value
+// is the one the pair would compute again.
+const PALETTE_CACHE_SIZE = 12;
+
+// Every index, as the list of ones still to fill.
+const ALL = null;
+
+// Matrices from evicted entries, reused at the same palette size so a run
+// allocates none after its first few steps.
+const POOL = [];
+
+const takeMatrix = (n) => {
+    for (let k = POOL.length - 1; k >= 0; k--) {
+        if (POOL[k].length === n * n) {
+            const matrix = POOL[k];
+            POOL[k] = POOL[POOL.length - 1];
+            POOL.pop();
+            return matrix;
+        }
+    }
+    return new Float64Array(n * n);
+};
+
+const clearRowAndColumn = (matrix, n, i) => {
+    matrix.fill(NaN, i * n, i * n + n);
+    for (let j = 0; j < n; j++) matrix[j * n + i] = NaN;
+};
+
+// `memos` is kept as passed and must not be reused by the caller.
+const entryFor = (metric, memos) => {
+    const cache = (metric.palettes ??= []);
+    const n = memos.length;
+    let best = null;
+    let bestShared = 0;
+    for (let k = 0; k < cache.length; k++) {
+        const entry = cache[k];
+        const theirs = entry.memos;
+        // Palettes from another CVD condition share no color at all, and a
+        // palette worth copying from shares all but one or two, so two
+        // mismatches at the front rule an entry out.
+        if (theirs.length !== n || (theirs[0] !== memos[0] && theirs[1] !== memos[1])) continue;
+        let shared = 0;
+        for (let i = 0; i < n; i++) {
+            if (theirs[i] === memos[i]) shared++;
+        }
+        if (shared === n) {
+            if (k !== 0) {
+                cache.copyWithin(1, 0, k);
+                cache[0] = entry;
+            }
+            return entry;
+        }
+        if (shared > bestShared) {
+            bestShared = shared;
+            best = entry;
+            // One color apart is as close as another palette gets.
+            if (shared === n - 1) break;
+        }
+    }
+    if (best) {
+        // The palette copied from is the one being varied, so it stays
+        // ahead of the rejected variations that would otherwise age it out.
+        const k = cache.indexOf(best);
+        cache.copyWithin(1, 0, k);
+        cache[0] = best;
+    }
+    if (cache.length === PALETTE_CACHE_SIZE) {
+        const evicted = cache.pop();
+        POOL.push(evicted.distances);
+        for (let t = 0; t < evicted.terms.length; t++) POOL.push(evicted.terms[t].matrix);
+        if (POOL.length > 4 * PALETTE_CACHE_SIZE) POOL.length = 4 * PALETTE_CACHE_SIZE;
+    }
+    const entry = { memos, distances: null, both: false, stale: ALL, terms: [] };
+    if (best) {
+        const stale = [];
+        for (let i = 0; i < n; i++) {
+            if (best.memos[i] !== memos[i]) stale.push(i);
+        }
+        entry.distances = inherit(best.distances, n, stale);
+        entry.both = best.both;
+        entry.stale = stale;
+        for (let t = 0; t < best.terms.length; t++) {
+            const { term, parameter, both, matrix } = best.terms[t];
+            entry.terms.push({ term, parameter, both, matrix: inherit(matrix, n, stale) });
+        }
+    } else {
+        entry.distances = takeMatrix(n).fill(NaN);
+    }
+    cache.unshift(entry);
+    return entry;
+};
+
+const inherit = (matrix, n, stale) => {
+    const copy = takeMatrix(n);
+    copy.set(matrix);
+    for (let s = 0; s < stale.length; s++) clearRowAndColumn(copy, n, stale[s]);
+    return copy;
+};
+
+// Fills the NaN entries in the rows and columns of `indices` (every row when
+// ALL) of a matrix: the pairs i < j, and the pairs i > j when `both`.
+const fillFrom = (matrix, n, indices, both, compute) => {
+    const count = indices === ALL ? n : indices.length;
+    for (let s = 0; s < count; s++) {
+        const i = indices === ALL ? s : indices[s];
+        for (let j = i + 1; j < n; j++) {
+            if (matrix[i * n + j] !== matrix[i * n + j]) matrix[i * n + j] = compute(i, j);
+        }
+        for (let j = 0; j < i; j++) {
+            if (matrix[j * n + i] !== matrix[j * n + i]) matrix[j * n + i] = compute(j, i);
+        }
+        if (both) {
+            for (let j = 0; j < i; j++) {
+                if (matrix[i * n + j] !== matrix[i * n + j]) matrix[i * n + j] = compute(i, j);
+            }
+            for (let j = i + 1; j < n; j++) {
+                if (matrix[j * n + i] !== matrix[j * n + i]) matrix[j * n + i] = compute(j, i);
+            }
+        }
+    }
+};
+
 /**
  * deltaE from each of `rows` to each of `cols`, by index, for callers that
  * measure many pairs. The metric and each color's memo are resolved once here
@@ -114,4 +242,67 @@ const pairwiseDeltaE = (rows, cols, options = {}) => {
     return (i, j) => distanceBetween(rows[i], cols[j], rowMemos[i], colMemos[j], metric);
 };
 
-export { deltaE, pairwiseDeltaE, metricFor };
+/**
+ * An n×n Float64Array holding `term(deltaE, parameter)` for each pair of
+ * `colors`, at index i * n + j, for the pairs with i < j, or every pair with
+ * i ≠ j when `both` is set. A null `term` gives the distances themselves.
+ * The diagonal is NaN. The matrix is cached, and a palette one color away
+ * from a cached one recomputes only that color's row and column, so `term`
+ * must be pure, and is cached by identity: define it once at module level.
+ * The returned array is only valid until the next call.
+ */
+const pairwiseTerms = (colors, options, term, parameter, both = false) => {
+    const metric = metricFor(options);
+    const memos = colors.map(memoFor);
+    const n = colors.length;
+    // Straight from the converted coordinates: the entry keeps the result,
+    // so the per-memo store distanceBetween maintains would only be written.
+    const { diff, space } = metric;
+    const measure = (i, j) =>
+        diff(convertMemoized(colors[i], memos[i], space), convertMemoized(colors[j], memos[j], space));
+
+    if (!memos.every(Boolean)) {
+        const distances = new Float64Array(n * n).fill(NaN);
+        fillFrom(distances, n, ALL, both, measure);
+        if (!term) return distances;
+        const terms = new Float64Array(n * n).fill(NaN);
+        fillFrom(terms, n, ALL, both, (i, j) => term(distances[i * n + j], parameter));
+        return terms;
+    }
+
+    // Once a matrix has been asked for both directions it is kept complete
+    // both ways, by every later fill and by the palettes that inherit it, so
+    // a copied matrix never has a hole outside the rows marked stale.
+    const entry = entryFor(metric, memos);
+    const { distances } = entry;
+    if (both && !entry.both) {
+        fillFrom(distances, n, ALL, true, measure);
+        entry.both = true;
+    } else {
+        fillFrom(distances, n, entry.stale, entry.both, measure);
+    }
+    if (!term) return distances;
+
+    const derive = (i, j) => term(distances[i * n + j], parameter);
+    let record = null;
+    for (let t = 0; t < entry.terms.length; t++) {
+        const candidate = entry.terms[t];
+        if (candidate.term === term && candidate.parameter === parameter) {
+            record = candidate;
+            break;
+        }
+    }
+    if (!record) {
+        record = { term, parameter, both, matrix: takeMatrix(n).fill(NaN) };
+        entry.terms.push(record);
+        fillFrom(record.matrix, n, ALL, both, derive);
+    } else if (both && !record.both) {
+        fillFrom(record.matrix, n, ALL, true, derive);
+        record.both = true;
+    } else {
+        fillFrom(record.matrix, n, entry.stale, record.both, derive);
+    }
+    return record.matrix;
+};
+
+export { deltaE, pairwiseDeltaE, pairwiseTerms, metricFor };

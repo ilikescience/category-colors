@@ -50,20 +50,26 @@ const getCvdFilter = (cvdType, severity) => {
 
 // Building a filter computes its matrix, so build each one once. Severity is
 // caller-supplied and continuous, so a long-lived process could otherwise
-// collect one entry per value it has ever seen.
+// collect one entry per value it has ever seen. Each filter gets a slot that
+// the colors' memos index their simulations by.
 const FILTERS = new Map();
 const MAX_FILTERS = 64;
+let filterCount = 0;
 
-const getCachedCvdFilter = (key, cvdType, severity) => {
-    let filter = FILTERS.get(key);
-    if (!filter) {
-        if (FILTERS.size >= MAX_FILTERS) {
+const getCachedCvdFilter = (cvdType, severity) => {
+    let bySeverity = FILTERS.get(cvdType);
+    if (!bySeverity) FILTERS.set(cvdType, (bySeverity = new Map()));
+    let entry = bySeverity.get(severity);
+    if (!entry) {
+        if (filterCount >= MAX_FILTERS) {
             FILTERS.clear();
+            FILTERS.set(cvdType, bySeverity);
+            bySeverity.clear();
         }
-        filter = getCvdFilter(cvdType, severity);
-        FILTERS.set(key, filter);
+        entry = { filter: getCvdFilter(cvdType, severity), slot: filterCount++ };
+        bySeverity.set(severity, entry);
     }
-    return filter;
+    return entry;
 };
 
 // A simulation depends only on the color's value, so it is computed once per
@@ -74,15 +80,15 @@ const getCachedCvdFilter = (key, cvdType, severity) => {
 // culori's filters convert to rgb, transform there, and convert back to the
 // input's mode. Handing them the memoized rgb skips the first step, which
 // deltaE needs too; the result goes back the way culori would take it.
-const simulateColor = (color, filter, key) => {
+const simulateColor = (color, { filter, slot }) => {
     const memo = memoFor(color);
-    let newColor = memo?.cvd?.get(key);
+    let newColor = memo?.cvd?.[slot];
     if (!newColor) {
         newColor = createColor(
             memo ? converterTo(color.mode)(filter(convertMemoized(color, memo, 'rgb'))) : filter(color)
         );
         if (memo) {
-            (memo.cvd ??= new Map()).set(key, newColor);
+            (memo.cvd ??= [])[slot] = newColor;
         }
     }
     newColor.fixedColor = color.fixedColor;
@@ -94,9 +100,8 @@ const simulateCvd = (state, cvdType, severity) => {
     if (cvdType === 'Normal') {
         return { ...state, colors: state.colors.map(withFlagsOf) };
     }
-    const key = `${cvdType}|${severity}`;
-    const filter = getCachedCvdFilter(key, cvdType, severity);
-    return { ...state, colors: state.colors.map((color) => simulateColor(color, filter, key)) };
+    const entry = getCachedCvdFilter(cvdType, severity);
+    return { ...state, colors: state.colors.map((color) => simulateColor(color, entry)) };
 };
 
 export default simulateCvd;

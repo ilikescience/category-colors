@@ -92,6 +92,8 @@ const memoFor = (color) => {
         mode: color.mode,
         check: layout.check,
         values,
+        lab65: undefined,
+        rgb: undefined,
         converted: null,
         cvd: null,
         distances: null,
@@ -127,16 +129,22 @@ const convertMemoized = (color, memo, mode) => {
     if (!memo || color.mode === mode) {
         return converterTo(mode)(color);
     }
-    const converted = (memo.converted ??= {});
-    let result = converted[mode];
-    if (result === undefined) {
-        result =
-            mode === 'rgb' || hasDirectConversion(color.mode, mode)
-                ? converterTo(mode)(color)
-                : converterTo(mode)(convertMemoized(color, memo, 'rgb'));
-        converted[mode] = result;
+    // The two targets every run needs get their own fields; a lookup by
+    // computed key costs several times a named one.
+    if (mode === 'lab65') {
+        return (memo.lab65 ??= convertVia(color, memo, mode));
     }
-    return result;
+    if (mode === 'rgb') {
+        return (memo.rgb ??= converterTo(mode)(color));
+    }
+    const converted = (memo.converted ??= {});
+    return (converted[mode] ??= convertVia(color, memo, mode));
 };
+
+// The steps culori's converter takes: directly, or through rgb.
+const convertVia = (color, memo, mode) =>
+    hasDirectConversion(color.mode, mode)
+        ? converterTo(mode)(color)
+        : converterTo(mode)(convertMemoized(color, memo, 'rgb'));
 
 export { memoFor, convertMemoized, converterTo, setMemoization };
