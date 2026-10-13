@@ -34,13 +34,26 @@ const matchesAll = (color, channels, values) => {
 
 // The loop above reads channels by computed key, which costs more than the
 // rest of a cache hit combined. The layouts the working spaces use get checks
-// that name their properties instead; one generated closure per layout would
-// share a call site's feedback across modes and run about seven times slower.
-const LAYOUT_CHECKS = {
-    'h,s,l,alpha': (c, v) => c.h === v[0] && c.s === v[1] && c.l === v[2] && c.alpha === v[3],
-    'l,c,h,alpha': (c, v) => c.l === v[0] && c.c === v[1] && c.h === v[2] && c.alpha === v[3],
-    'l,a,b,alpha': (c, v) => c.l === v[0] && c.a === v[1] && c.b === v[2] && c.alpha === v[3],
-    'r,g,b,alpha': (c, v) => c.r === v[0] && c.g === v[1] && c.b === v[2] && c.alpha === v[3],
+// and readers that name their properties instead; one generated closure per
+// layout would share a call site's feedback across modes and run about seven
+// times slower.
+const LAYOUTS_BY_NAME = {
+    'h,s,l,alpha': {
+        check: (c, v) => c.h === v[0] && c.s === v[1] && c.l === v[2] && c.alpha === v[3],
+        read: (c) => [c.h, c.s, c.l, c.alpha],
+    },
+    'l,c,h,alpha': {
+        check: (c, v) => c.l === v[0] && c.c === v[1] && c.h === v[2] && c.alpha === v[3],
+        read: (c) => [c.l, c.c, c.h, c.alpha],
+    },
+    'l,a,b,alpha': {
+        check: (c, v) => c.l === v[0] && c.a === v[1] && c.b === v[2] && c.alpha === v[3],
+        read: (c) => [c.l, c.a, c.b, c.alpha],
+    },
+    'r,g,b,alpha': {
+        check: (c, v) => c.r === v[0] && c.g === v[1] && c.b === v[2] && c.alpha === v[3],
+        read: (c) => [c.r, c.g, c.b, c.alpha],
+    },
 };
 
 const LAYOUTS = new Map();
@@ -53,12 +66,10 @@ const layoutFor = (mode) => {
     if (layout === undefined) {
         const channels = getMode(mode)?.channels;
         layout = channels
-            ? {
-                  channels,
-                  check:
-                      LAYOUT_CHECKS[channels.join(',')] ??
-                      ((color, values) => matchesAll(color, channels, values)),
-              }
+            ? (LAYOUTS_BY_NAME[channels.join(',')] ?? {
+                  check: (color, values) => matchesAll(color, channels, values),
+                  read: (color) => channels.map((channel) => color[channel]),
+              })
             : null;
         LAYOUTS.set(mode, layout);
     }
@@ -83,9 +94,11 @@ const memoFor = (color) => {
     if (!layout || !Object.isExtensible(color)) {
         return null;
     }
-    const values = layout.channels.map((channel) => color[channel]);
-    if (values.some(Number.isNaN)) {
-        return null;
+    const values = layout.read(color);
+    for (let i = 0; i < values.length; i++) {
+        if (values[i] !== values[i]) {
+            return null;
+        }
     }
     const memo = {
         id: nextId++,

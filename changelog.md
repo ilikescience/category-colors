@@ -49,10 +49,10 @@
   | 20 | 106 µs/step, 3.21 s | 67 µs/step, 2.01 s | 1.6× |
 
   That change alone kept output identical to the last bit. With the changes
-  above as well, a step is 17, 21, 27 and 43 µs at 4, 8, 12 and 20 colors
-  (0.43, 0.62, 0.81 and 1.29 s a generation), a further 1.3–1.5×. A color's
+  above as well, a step is 15, 20, 26 and 41 µs at 4, 8, 12 and 20 colors
+  (0.38, 0.58, 0.76 and 1.22 s a generation), a further 1.5–1.7×. A color's
   Lab and rgb coordinates now have their own fields on its memo rather than
-  a lookup by name.
+  a lookup by name, and a memo reads its channels by name too.
 
 ## 3.0.2
 

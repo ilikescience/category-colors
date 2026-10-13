@@ -131,9 +131,11 @@ const takeMatrix = (n) => {
     return new Float64Array(n * n);
 };
 
+// A hand-written shift: copyWithin on a short object array costs about
+// twenty times as much.
 const moveToFront = (cache, k) => {
     const entry = cache[k];
-    cache.copyWithin(1, 0, k);
+    for (let j = k; j > 0; j--) cache[j] = cache[j - 1];
     cache[0] = entry;
 };
 
