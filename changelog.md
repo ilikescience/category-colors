@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.3.0
+
+### Added
+
+- **Several windows per channel.** Each entry of `config.colorSpace.ranges`
+  may be a list of `[min, max]` windows as well as a single one, and windows
+  are hard bounds. Initial colors are drawn with probability proportional to
+  window width; a mutation that lands outside every window snaps to the
+  nearest edge, around the circle on a cyclic channel; steps are scaled by
+  the windows' total width. On a cyclic channel a window with `min > max` is
+  the arc through zero: `[300, 60]` is the 120° arc through 0, which used to
+  collapse to 60 because its width went negative.
+
+### Changed
+
+- **A partial hue window no longer wraps modulo its own width.** A hue
+  stepping past the end of `[100, 200]` used to re-enter at 100; it now
+  stops at 200, like any other channel. Cyclic channels wrap modulo the
+  mode's full period (360° for hue), so a full-circle hue range behaves as
+  before and seeded single-window runs reproduce 3.2.0 exactly.
+
 ## 3.2.0
 
 ### Added

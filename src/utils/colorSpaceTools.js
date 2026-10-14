@@ -4,49 +4,83 @@ import { createColor, getChannelWrap, getChannels, toModeObject } from './palett
 
 const { clampGamut, inGamut, converter } = culori;
 
-const clampChannelToRange = (value, range, wrap) => {
-    if (!range) {
+// A channel's constraint is a list of windows, each a sorted [min, max]. The
+// config may give one window or several per channel; on a cyclic channel such
+// as hue a window with min > max is the arc crossing zero ([300, 60] is the
+// 120° arc through 0) and is split at the seam here, so nothing downstream has
+// to know about wrapped windows.
+const resolveWindows = (entry, period, domainStart) => {
+    if (!entry) {
+        return null;
+    }
+    const list = Array.isArray(entry[0]) ? entry : [entry];
+    const windows = [];
+    list.forEach(([a, b]) => {
+        if (period && a > b) {
+            windows.push([a, domainStart + period], [domainStart, b]);
+        } else {
+            windows.push(a <= b ? [a, b] : [b, a]);
+        }
+    });
+    windows.sort((x, y) => x[0] - y[0]);
+    const merged = [];
+    windows.forEach((window) => {
+        const last = merged[merged.length - 1];
+        if (last && window[0] <= last[1]) {
+            last[1] = Math.max(last[1], window[1]);
+        } else {
+            merged.push([window[0], window[1]]);
+        }
+    });
+    return merged;
+};
+
+const windowsSpan = (windows) => windows.reduce((sum, [min, max]) => sum + (max - min), 0);
+
+// One uniform draw over the combined width lands in each window with
+// probability proportional to its width, and uniformly inside it. For a single
+// window this is exactly min + random() * (max - min).
+const drawInWindows = (windows, random) => {
+    let offset = random() * windowsSpan(windows);
+    for (let i = 0; i < windows.length; i++) {
+        const [min, max] = windows[i];
+        if (offset <= max - min || i === windows.length - 1) {
+            return min + offset;
+        }
+        offset -= max - min;
+    }
+    return windows[0][0];
+};
+
+// Brings a value inside the windows: cyclic channels are reduced modulo their
+// period first, and a value outside every window moves to the nearest window
+// edge (around the circle, for a cyclic channel).
+const snapToWindows = (value, windows, period, domainStart) => {
+    if (!windows || windows.length === 0) {
         return value;
     }
     let result = value;
-    if (wrap) {
-        const modulus = typeof wrap === 'number' ? wrap : range[1] - range[0];
-        if (modulus > 0) {
-            result = ((result - range[0]) % modulus + modulus) % modulus + range[0];
-        }
+    if (period) {
+        result = ((((result - domainStart) % period) + period) % period) + domainStart;
     }
-    const [min, max] = range;
-    if (result < min) return min;
-    if (result > max) return max;
-    return result;
-};
-
-const getChannelSpan = (range, wrap) => {
-    let span = null;
-
-    if (wrap) {
-        if (typeof wrap === 'number' && Number.isFinite(wrap) && wrap !== 0) {
-            span = Math.abs(wrap);
-        } else if (range && Number.isFinite(range[0]) && Number.isFinite(range[1])) {
-            const diff = range[1] - range[0];
-            if (Number.isFinite(diff) && diff !== 0) {
-                span = Math.abs(diff);
+    if (windows.some(([min, max]) => min <= result && result <= max)) {
+        return result;
+    }
+    let nearest = result;
+    let nearestDistance = Infinity;
+    windows.forEach((window) => {
+        window.forEach((edge) => {
+            let distance = Math.abs(result - edge);
+            if (period) {
+                distance = Math.min(distance, period - distance);
             }
-        }
-    }
-
-    if (span === null && range && Number.isFinite(range[0]) && Number.isFinite(range[1])) {
-        const diff = range[1] - range[0];
-        if (Number.isFinite(diff) && diff !== 0) {
-            span = Math.abs(diff);
-        }
-    }
-
-    if (span === null || span === 0) {
-        return 1;
-    }
-
-    return span;
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearest = edge;
+            }
+        });
+    });
+    return nearest;
 };
 
 const resolveRanges = (mode, configRanges) => {
@@ -76,15 +110,40 @@ const resolveRanges = (mode, configRanges) => {
     });
 };
 
-const normalizeCoords = (color, channels, ranges) =>
+// Per channel: the windows a value may sit in, the channel's period if it is
+// cyclic (else null), where the cycle starts, and the width that scales a
+// mutation step — the total width of the windows.
+const resolveChannels = (colorSpace) => {
+    const { mode } = colorSpace;
+    const ranges = resolveRanges(mode, colorSpace.ranges);
+    const modeRanges = culori.getMode(mode)?.ranges || {};
+    const channels = getChannels(mode) || [];
+    return channels.map((channel, index) => {
+        const defaultRange = modeRanges[channel];
+        const domainStart = Array.isArray(defaultRange) ? defaultRange[0] : 0;
+        const override = colorSpace.wrap ? colorSpace.wrap[index] : undefined;
+        let period = null;
+        if (colorSpace.wrap) {
+            if (typeof override === 'number' && override > 0) period = override;
+            else if (override) period = getChannelWrap(mode, index);
+        } else {
+            period = getChannelWrap(mode, index);
+        }
+        const windows = resolveWindows(ranges[index], period, domainStart);
+        const span = windows ? windowsSpan(windows) : 0;
+        return { windows, period, domainStart, span: span > 0 ? span : 1 };
+    });
+};
+
+const normalizeCoords = (color, channels, channelInfo) =>
     channels.map((channel, index) => {
         const value = color[channel];
         if (Number.isFinite(value)) {
             return value;
         }
-        const range = ranges[index];
-        if (range) {
-            return (range[0] + range[1]) / 2;
+        const { windows } = channelInfo[index];
+        if (windows && windows.length > 0) {
+            return (windows[0][0] + windows[0][1]) / 2;
         }
         return 0;
     });
@@ -95,9 +154,7 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
         return color;
     }
     const mode = colorSpace.mode;
-    const ranges = resolveRanges(mode, colorSpace.ranges);
-    // Auto-detect wrap from culori's mode definition if not explicitly provided
-    const wrap = colorSpace.wrap || ranges.map((range, index) => getChannelWrap(mode, index, range));
+    const channelInfo = resolveChannels(colorSpace);
 
     const paletteColor = createColor(color);
     // Value-fixed colors keep their exact value; coercing them into the working
@@ -131,16 +188,9 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
 
     const converted = converter(mode)(workingColor);
     const channels = getChannels(mode) || [];
-    let coords = normalizeCoords(converted, channels, ranges);
-
-    let rangeAdjusted = false;
-    coords = coords.map((value, index) => {
-        const range = ranges[index];
-        const wrapped = clampChannelToRange(value, range, wrap[index]);
-        if (wrapped !== value) {
-            rangeAdjusted = true;
-        }
-        return wrapped;
+    const coords = normalizeCoords(converted, channels, channelInfo).map((value, index) => {
+        const { windows, period, domainStart } = channelInfo[index];
+        return snapToWindows(value, windows, period, domainStart);
     });
 
     if (!silent && gamutAdjusted) {
@@ -164,15 +214,11 @@ const randomColorInSpace = (config, distanceOptions, random = Math.random) => {
         return createColor('#000000');
     }
     const mode = colorSpace.mode;
-    const ranges = resolveRanges(mode, colorSpace.ranges);
-
-    // One uniform draw per channel, in channel order, within the configured
-    // range or the mode's own. This is what culori's random() does, written
-    // out so the draws come from `random` rather than Math.random.
-    const coords = ranges.map((range) => {
-        const [min, max] = range || [0, 1];
-        return min + random() * (max - min);
-    });
+    // One uniform draw per channel, in channel order, over that channel's
+    // windows (or [0, 1] for a channel with no range at all).
+    const coords = resolveChannels(colorSpace).map(({ windows }) =>
+        drawInWindows(windows && windows.length > 0 ? windows : [[0, 1]], random)
+    );
     const color = createColor(toModeObject(mode, coords));
     return ensureColorInSpace(color, config, distanceOptions, { context: 'random color', silent: true });
 };
@@ -180,13 +226,11 @@ const randomColorInSpace = (config, distanceOptions, random = Math.random) => {
 const mutateColorInSpace = (color, distance, config, distanceOptions, random = Math.random) => {
     const { colorSpace } = config;
     const mode = colorSpace.mode;
-    const ranges = resolveRanges(mode, colorSpace.ranges);
-    // Auto-detect wrap from culori's mode definition if not explicitly provided
-    const wrap = colorSpace.wrap || ranges.map((range, index) => getChannelWrap(mode, index, range));
+    const channelInfo = resolveChannels(colorSpace);
 
     const converted = converter(mode)(color);
     const channels = getChannels(mode) || [];
-    const coords = normalizeCoords(converted, channels, ranges);
+    const coords = normalizeCoords(converted, channels, channelInfo);
     const lockedChannels = color.lockedChannels || [];
     const freeChannels = coords
         .map((_, index) => index)
@@ -202,9 +246,8 @@ const mutateColorInSpace = (color, distance, config, distanceOptions, random = M
         deltas[channelIndex] = mutation[i];
     });
     const mutated = coords.map((value, index) => {
-        const range = ranges[index];
-        const span = getChannelSpan(range, wrap[index]);
-        return clampChannelToRange(value + deltas[index] * span, range, wrap[index]);
+        const { windows, period, domainStart, span } = channelInfo[index];
+        return snapToWindows(value + deltas[index] * span, windows, period, domainStart);
     });
     const mutatedColor = createColor(toModeObject(mode, mutated));
     mutatedColor.fixedColor = color.fixedColor;
@@ -223,4 +266,4 @@ const sanitizePalette = (colors, config, distanceOptions, contextPrefix = 'color
         });
     });
 
-export { ensureColorInSpace, randomColorInSpace, mutateColorInSpace, sanitizePalette };
+export { ensureColorInSpace, randomColorInSpace, mutateColorInSpace, sanitizePalette, resolveChannels };

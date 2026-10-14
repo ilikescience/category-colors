@@ -127,8 +127,11 @@ export interface Config {
   colorDistance?: ColorDistance;
   colorSpace?: {
     mode: ColorMode;
-    /** Per-channel [min, max], in the channel order of `mode`. */
-    ranges?: number[][];
+    /**
+     * Per channel, in the channel order of `mode`: one `[min, max]` window or
+     * a list of them. On a cyclic channel `min > max` is the arc through zero.
+     */
+    ranges?: (number[] | number[][])[];
     /** Overrides automatic cyclic-channel detection. Rarely needed. */
     wrap?: (number | boolean)[];
   };

@@ -262,6 +262,23 @@ config.colorSpace = {
 };
 ```
 
+### Several windows per channel
+
+A channel may be limited to several windows, each a `[min, max]`. Windows
+are hard bounds: no color ever sits outside all of them. On a cyclic channel
+a window with `min > max` is the arc through zero, so `[300, 60]` is the 120°
+arc of reds either side of 0.
+
+```js
+config.colorSpace.ranges[0] = [[300, 60], [180, 240]]; // reds and blues
+```
+
+Random initial colors land in a window with probability proportional to its
+width, uniformly within it. A mutation that steps outside every window is
+moved to the nearest window edge (around the circle on a cyclic channel)
+rather than rejected, and mutation steps are scaled by the windows' total
+width. Overlapping windows are merged.
+
 The annealing schedule itself:
 
 - The starting temperature is derived by sampling random mutations.

@@ -22,7 +22,9 @@ const getChannels = (mode) => {
     return null;
 };
 
-const getChannelWrap = (mode, channelIndex, configRange) => {
+// The period of a cyclic channel (hue), from the mode's own range; null for
+// every other channel.
+const getChannelWrap = (mode, channelIndex) => {
     const modeDef = getMode(mode);
     const channels = getChannels(mode);
     if (!modeDef || !channels || !channels[channelIndex]) {
@@ -33,10 +35,6 @@ const getChannelWrap = (mode, channelIndex, configRange) => {
 
     // Channels with hue fixup functions should wrap
     if (fixupName && fixupName.toLowerCase().includes('hue')) {
-        // Use the config range if provided, otherwise use the mode's default range
-        if (configRange && Array.isArray(configRange)) {
-            return configRange[1] - configRange[0];
-        }
         const range = modeDef.ranges?.[channel];
         return range ? range[1] - range[0] : null;
     }
