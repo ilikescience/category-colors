@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.2.0
+
+### Added
+
+- **`config.seed` makes a run repeatable.** Every random draw (initial
+  colors, the mutation picked each step, acceptance tests, the temperature
+  samples) comes from a small seeded generator (mulberry32, no dependency)
+  when a seed is set, so the same state, config and seed give the same
+  palette. Omitted, the optimizer draws from `Math.random` as before.
+  Order optimization was already deterministic. `generatePalette` always
+  runs seeded, drawing a seed when none is given, and reports the one it
+  used as `result.seed`; the CLI gains `--seed <int>` and prints the seed in
+  its text and JSON output.
+
+### Changed
+
+- Random initial colors are drawn by the package rather than culori's
+  `random()`, one uniform draw per channel in channel order, which is the
+  same sequence culori produced.
+
 ## 3.1.0
 
 ### Fixed

@@ -129,12 +129,18 @@ const generatePalette = ({
     logProgress,
 } = {}) => {
     const config = buildConfig({ configPath, inlineConfig, logProgress });
+    // Always run seeded, drawing a seed when none was given, so the result
+    // can echo the seed that produced it and a good run can be repeated.
+    if (config.seed === undefined || config.seed === null) {
+        config.seed = Math.floor(Math.random() * 2 ** 32);
+    }
     const state = buildState({ statePath, inlineState, config });
     const initialState = prepareInitialState(state, config);
     const algorithm = orderOptimization ? runWithOrderOptimization : runSimulatedAnnealing;
     const finalState = algorithm(initialState, config);
     return {
         config,
+        seed: config.seed,
         initialState,
         finalState,
     };
@@ -143,7 +149,7 @@ const generatePalette = ({
 const toHexPalette = (colors) =>
     colors.map((color) => String(color));
 
-const formatTextSummary = (initialState, finalState) => {
+const formatTextSummary = (initialState, finalState, seed) => {
     const initialColors = toHexPalette(initialState.colors);
     const finalColors = toHexPalette(finalState.colors);
     const costDifference = finalState.cost - initialState.cost;
@@ -155,10 +161,11 @@ const formatTextSummary = (initialState, finalState) => {
         `Iterations: ${finalState.iterations}`,
         `Temperature: ${finalState.temperature}`,
         `Cost difference: ${costDifference}`,
+        ...(seed === undefined ? [] : [`Seed: ${seed}`]),
     ].join('\n');
 };
 
-const buildJsonSummary = (initialState, finalState) => ({
+const buildJsonSummary = (initialState, finalState, seed) => ({
     palette: toHexPalette(finalState.colors),
     cost: finalState.cost,
     iterations: finalState.iterations,
@@ -168,6 +175,7 @@ const buildJsonSummary = (initialState, finalState) => ({
         cost: initialState.cost,
     },
     costDifference: finalState.cost - initialState.cost,
+    ...(seed === undefined ? {} : { seed }),
 });
 
 export { generatePalette, formatTextSummary, buildJsonSummary, toHexPalette, buildConfig, buildState, resolveModule };

@@ -72,6 +72,7 @@ Run options:
 | `-f, --format <type>` | `text` (default), `json`, or `palette` |
 | `-o, --output <path>` | Write to a file instead of stdout |
 | `--no-order` | Skip post-annealing order optimization |
+| `--seed <int>` | Reproduce a run; the output reports the seed used |
 | `--quiet` | Suppress progress logging |
 
 Report options audit an existing palette for pairs that fall below a
@@ -166,6 +167,14 @@ finalState.costHistory; // [[0, 4.21], [100, 3.88], ..., [7412, 1.03]]
 
 `historyInterval` defaults to `maxIterations / 250`. The first and last
 iterations are always sampled, and order optimization appends one final point.
+
+### Repeating a run
+
+Set `config.seed` to an integer and every random draw comes from a seeded
+generator, so the same state, config, and seed give the same palette. Without
+it the optimizer uses `Math.random`. `generatePalette` (and the CLI's `--seed`)
+always runs seeded and reports the seed it used as `result.seed`, so a good
+run can be repeated even when no seed was passed.
 
 ## Configuration
 

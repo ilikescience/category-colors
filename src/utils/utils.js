@@ -18,24 +18,24 @@ const multiplyMatrices = (m1, m2) => {
 };
 
 // generates a random number with a gaussian distribution between -1 and 1
-const gaussianRandom = () => {
+const gaussianRandom = (random = Math.random) => {
     let u = 0,
         v = 0;
 
-    while (u === 0) u = Math.random();
-    while (v === 0) v = Math.random();
+    while (u === 0) u = random();
+    while (v === 0) v = random();
 
     return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
 };
 
 // generates a random n-dimensional vector with a length of 1
 // useful for walking through color spaces randomly
-const randomVector = (dimensions, length = 1) => {
+const randomVector = (dimensions, length = 1, random = Math.random) => {
     let vector = [];
     let vectorLength = 0;
 
     for (let i = 0; i < dimensions; i++) {
-        vector.push(gaussianRandom());
+        vector.push(gaussianRandom(random));
         vectorLength += vector[i] ** 2;
     }
 

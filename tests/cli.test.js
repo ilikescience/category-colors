@@ -92,3 +92,18 @@ test('CLI report exits with an error when no palette is provided', () => {
     assert.strictEqual(result.status, 1);
     assert.match(result.stderr, /No palette provided/);
 });
+
+test('CLI --seed reproduces a run and reports the seed', () => {
+    const args = ['run', '--format', 'json', '--quiet', '--config', configFixture, '--seed', '42'];
+    const first = runCli(args);
+    assert.strictEqual(first.status, 0, first.stderr);
+    const second = runCli(args);
+    const a = JSON.parse(first.stdout);
+    const b = JSON.parse(second.stdout);
+    assert.strictEqual(a.seed, 42);
+    assert.deepStrictEqual(a.palette, b.palette);
+
+    const bad = runCli(['run', '--seed', 'abc']);
+    assert.notStrictEqual(bad.status, 0);
+    assert.match(bad.stderr, /--seed must be an integer/);
+});

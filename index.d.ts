@@ -146,6 +146,12 @@ export interface Config {
   recordHistory?: boolean;
   /** Iterations between history samples. Defaults to maxIterations / 250. */
   historyInterval?: number;
+  /**
+   * Seeds every random draw (initial colors, mutations, acceptance tests), so
+   * the same state, config, and seed reproduce a run exactly. An integer.
+   * Omit it to draw from Math.random.
+   */
+  seed?: number;
   [option: string]: unknown;
 }
 

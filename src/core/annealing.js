@@ -1,18 +1,19 @@
 import { getNeighbor } from './getNeighbor.js';
 import { optimizeColorOrder } from './optimizeColorOrder.js';
 import { cost } from './cost.js';
+import { randomFrom } from '../utils/random.js';
 
-const shouldAcceptCandidate = (currentCost, candidateCost, temperature) => {
+const shouldAcceptCandidate = (currentCost, candidateCost, temperature, random) => {
     if (candidateCost <= currentCost) {
         return true;
     }
     const acceptanceProbability = Math.exp(-(candidateCost - currentCost) / temperature);
-    return Math.random() < acceptanceProbability;
+    return random() < acceptanceProbability;
 };
 
-const stepAnnealing = (state, config) => {
-    const candidateState = getNeighbor(state, config);
-    if (shouldAcceptCandidate(state.cost, candidateState.cost, state.temperature)) {
+const stepAnnealing = (state, config, random) => {
+    const candidateState = getNeighbor(state, config, random);
+    if (shouldAcceptCandidate(state.cost, candidateState.cost, state.temperature, random)) {
         Object.assign(state, candidateState);
     }
     if (config.logProgress !== false && state.iterations % 100 === 0) {
@@ -76,6 +77,7 @@ const runSimulatedAnnealing = (initialState, config) => {
         colors: initialState.colors.map((color) => color),
     };
 
+    const random = randomFrom(config);
     const recordHistory = config.recordHistory === true;
     const historyInterval = recordHistory ? resolveHistoryInterval(initialState, config) : 0;
     if (recordHistory) {
@@ -88,7 +90,7 @@ const runSimulatedAnnealing = (initialState, config) => {
         state.temperature > config.cutoff &&
         state.iterations < config.maxIterations
     ) {
-        stepAnnealing(state, config);
+        stepAnnealing(state, config, random);
         if (recordHistory && state.iterations % historyInterval === 0) {
             state.costHistory.push([state.iterations, state.cost]);
         }

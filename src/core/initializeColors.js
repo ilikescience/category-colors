@@ -1,7 +1,7 @@
 import { resolveDistanceOptions } from '../utils/distanceOptions.js';
 import { ensureColorInSpace, randomColorInSpace, sanitizePalette, } from '../utils/colorSpaceTools.js';
 
-const initializeColors = (state, config) => {
+const initializeColors = (state, config, random = Math.random) => {
     const distanceOptions = resolveDistanceOptions(config);
     const sanitized = sanitizePalette(state.colors || [], config, distanceOptions, 'initial');
 
@@ -15,7 +15,7 @@ const initializeColors = (state, config) => {
 
     for (let i = 0; i < targetColorCount; i++) {
         if (!initializedState.colors[i]) {
-            initializedState.colors[i] = randomColorInSpace(config, distanceOptions);
+            initializedState.colors[i] = randomColorInSpace(config, distanceOptions, random);
         } else if (!initializedState.colors[i].fixedColor) {
             initializedState.colors[i] = ensureColorInSpace(
                 initializedState.colors[i],

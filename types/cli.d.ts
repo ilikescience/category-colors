@@ -14,6 +14,8 @@ export interface GeneratePaletteOptions {
 
 export interface GeneratePaletteResult {
   config: Config;
+  /** The seed the run used: `config.seed`, or one drawn for it when none was given. */
+  seed: number;
   initialState: State;
   finalState: State;
 }
@@ -42,10 +44,11 @@ export function buildState(options?: {
 export function resolveModule(inputPath: string): unknown;
 
 export function toHexPalette(colors: State['colors']): string[];
-export function formatTextSummary(initialState: State, finalState: State): string;
+export function formatTextSummary(initialState: State, finalState: State, seed?: number): string;
 export function buildJsonSummary(
   initialState: State,
-  finalState: State
+  finalState: State,
+  seed?: number
 ): {
   palette: string[];
   cost: number;
@@ -53,4 +56,6 @@ export function buildJsonSummary(
   temperature: number;
   initial: { palette: string[]; cost: number };
   costDifference: number;
+  /** Present when a seed was passed. */
+  seed?: number;
 };

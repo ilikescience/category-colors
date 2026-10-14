@@ -2,7 +2,7 @@ import { cost } from './cost.js';
 import { resolveDistanceOptions } from '../utils/distanceOptions.js';
 import { mutateColorInSpace } from '../utils/colorSpaceTools.js';
 
-const getNeighbor = (state, config) => {
+const getNeighbor = (state, config, random = Math.random) => {
     const distanceOptions = resolveDistanceOptions(config);
     const neighborState = { ...state };
     const colors = state.colors.slice();
@@ -12,7 +12,7 @@ const getNeighbor = (state, config) => {
     if (mutableIndexes.length === 0) {
         return neighborState;
     }
-    const colorIndex = mutableIndexes[Math.floor(Math.random() * mutableIndexes.length)];
+    const colorIndex = mutableIndexes[Math.floor(random() * mutableIndexes.length)];
 
     const {
         maxMutationDistance,
@@ -20,7 +20,7 @@ const getNeighbor = (state, config) => {
     } = config;
     const distance = minMutationDistance + (maxMutationDistance - minMutationDistance) * state.temperature;
 
-    const mutatedColor = mutateColorInSpace(colors[colorIndex], distance, config, distanceOptions);
+    const mutatedColor = mutateColorInSpace(colors[colorIndex], distance, config, distanceOptions, random);
     neighborState.colors = colors.map((color, index) => (index === colorIndex ? mutatedColor : color));
     neighborState.cost = cost(neighborState, config);
     return neighborState;

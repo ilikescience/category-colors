@@ -23,6 +23,7 @@ Run options:
   -f, --format <type>   Output format: text (default), json, palette.
   -o, --output <path>   Write the generated output to the specified file instead of stdout.
       --no-order        Skip post-annealing color order optimization.
+      --seed <int>      Seed the run so the same inputs reproduce it; output reports the seed used.
       --quiet           Disable progress logging during annealing.
 
 Report options (audit an existing palette for just-noticeable-difference issues):
@@ -88,6 +89,16 @@ const parseRunOptions = (args) => {
                 }
                 options.outputPath = args[i];
                 break;
+            case '--seed':
+                i += 1;
+                if (i >= args.length) {
+                    throw new Error('Missing value for --seed option.');
+                }
+                options.seed = Number(args[i]);
+                if (!Number.isInteger(options.seed)) {
+                    throw new Error(`--seed must be an integer; received ${args[i]}.`);
+                }
+                break;
             case '--no-order':
                 options.orderOptimization = false;
                 break;
@@ -121,15 +132,15 @@ const writeOutput = (outputPath, content, { format, quiet }) => {
     }
 };
 
-const renderResult = (format, initialState, finalState) => {
+const renderResult = (format, initialState, finalState, seed) => {
     switch (format) {
         case 'json':
-            return `${JSON.stringify(buildJsonSummary(initialState, finalState), null, 2)}\n`;
+            return `${JSON.stringify(buildJsonSummary(initialState, finalState, seed), null, 2)}\n`;
         case 'palette':
             return `${toHexPalette(finalState.colors).join('\n')}\n`;
         case 'text':
         default:
-            return `${formatTextSummary(initialState, finalState)}\n`;
+            return `${formatTextSummary(initialState, finalState, seed)}\n`;
     }
 };
 
@@ -140,14 +151,15 @@ const runCommand = (args) => {
         return;
     }
 
-    const { initialState, finalState } = generatePalette({
+    const { initialState, finalState, seed } = generatePalette({
         configPath: options.configPath,
+        config: options.seed === undefined ? undefined : { seed: options.seed },
         statePath: options.statePath,
         orderOptimization: options.orderOptimization,
         logProgress: !options.quiet,
     });
 
-    const output = renderResult(options.format, initialState, finalState);
+    const output = renderResult(options.format, initialState, finalState, seed);
     if (options.outputPath) {
         writeOutput(options.outputPath, output, options);
     } else {

@@ -4,12 +4,13 @@
  * @param {object} config The main configuration object.
  * @param {number} numSamples The number of random neighbors to generate for the test.
  * @param {number} targetAcceptanceRate The desired probability (e.g., 0.95) of accepting a worse move at the start.
+ * @param {() => number} random Source of randomness for the sampled mutations.
  * @returns {number} The calculated initial temperature.
  */
 
 import { getNeighbor } from './getNeighbor.js';
 
-const findInitialTemperature = (initialState, config, numSamples = 100, targetAcceptanceRate = 0.95) => {
+const findInitialTemperature = (initialState, config, numSamples = 100, targetAcceptanceRate = 0.95, random = Math.random) => {
     if (!Number.isFinite(initialState.cost)) {
         throw new Error('Initial state must have a finite cost before determining initial temperature.');
     }
@@ -26,7 +27,7 @@ const findInitialTemperature = (initialState, config, numSamples = 100, targetAc
 
     for (let i = 0; i < numSamples; i++) {
         // getNeighbor reads state.temperature (1 at this point) to scale mutation size.
-        const candidateState = getNeighbor(initialState, config);
+        const candidateState = getNeighbor(initialState, config, random);
         const deltaCost = candidateState.cost - initialCost;
 
         if (deltaCost > 0) {

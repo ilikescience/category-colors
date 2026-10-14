@@ -2,7 +2,7 @@ import * as culori from 'culori';
 import { randomVector } from './utils.js';
 import { createColor, getChannelWrap, getChannels, toModeObject } from './paletteColor.js';
 
-const { random, clampGamut, inGamut, converter } = culori;
+const { clampGamut, inGamut, converter } = culori;
 
 const clampChannelToRange = (value, range, wrap) => {
     if (!range) {
@@ -158,7 +158,7 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
     return adjusted;
 };
 
-const randomColorInSpace = (config, distanceOptions) => {
+const randomColorInSpace = (config, distanceOptions, random = Math.random) => {
     const { colorSpace } = config;
     if (!colorSpace || !colorSpace.mode) {
         return createColor('#000000');
@@ -166,23 +166,18 @@ const randomColorInSpace = (config, distanceOptions) => {
     const mode = colorSpace.mode;
     const ranges = resolveRanges(mode, colorSpace.ranges);
 
-    // Build constraints object for culori's random() function
-    const constraints = {};
-    const channels = getChannels(mode) || [];
-
-    channels.forEach((channel, index) => {
-        if (ranges[index]) {
-            constraints[channel] = ranges[index];
-        }
+    // One uniform draw per channel, in channel order, within the configured
+    // range or the mode's own. This is what culori's random() does, written
+    // out so the draws come from `random` rather than Math.random.
+    const coords = ranges.map((range) => {
+        const [min, max] = range || [0, 1];
+        return min + random() * (max - min);
     });
-
-    // Use culori's random() function with mode and constraints
-    const randomColor = random(mode, Object.keys(constraints).length > 0 ? constraints : undefined);
-    const color = createColor(randomColor);
+    const color = createColor(toModeObject(mode, coords));
     return ensureColorInSpace(color, config, distanceOptions, { context: 'random color', silent: true });
 };
 
-const mutateColorInSpace = (color, distance, config, distanceOptions) => {
+const mutateColorInSpace = (color, distance, config, distanceOptions, random = Math.random) => {
     const { colorSpace } = config;
     const mode = colorSpace.mode;
     const ranges = resolveRanges(mode, colorSpace.ranges);
@@ -201,7 +196,7 @@ const mutateColorInSpace = (color, distance, config, distanceOptions) => {
     }
     // Generate the mutation vector over the free channels only, so locking
     // channels doesn't shrink the effective step size.
-    const mutation = randomVector(freeChannels.length, distance);
+    const mutation = randomVector(freeChannels.length, distance, random);
     const deltas = new Array(coords.length).fill(0);
     freeChannels.forEach((channelIndex, i) => {
         deltas[channelIndex] = mutation[i];
