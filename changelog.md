@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.5.1
+
+### Fixed
+
+- **`cutoff: 0` produced degenerate palettes.** A cutoff of 0 means "run to
+  `maxIterations`", but since 3.4.0 step size was measured against
+  `log(cutoff)`. That gave a NaN step, and every mutation landed on the same
+  color: a 4-color run could return one color four times. Steps now shrink
+  toward wherever the run actually ends: the cutoff, or the temperature at
+  `maxIterations` when the cap comes first. Runs that end at the cutoff,
+  including every run on the default config, are unchanged, and seeded runs
+  reproduce 3.5.0 exactly. Runs capped by `maxIterations` before reaching the
+  cutoff now get down to `minMutationDistance` by their last step, where
+  before they stopped while steps were still large.
+
 ## 3.5.0
 
 ### Changed

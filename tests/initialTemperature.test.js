@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { prepareInitialState } from '../src/core/state.js';
 import { getNeighbor } from '../src/core/getNeighbor.js';
+import { runWithOrderOptimization } from '../src/core/annealing.js';
 import { createDefaultConfig } from '../src/config/defaultConfig.js';
 import { randomFrom } from '../src/utils/random.js';
 import { differenceEuclidean } from 'culori';
@@ -39,4 +40,20 @@ test('mutations shrink from full size at the start to the minimum at the cutoff'
     const middle = totalStep({ ...state, temperature: state.temperature / 100 }, cfg);
     const end = totalStep({ ...state, temperature: cfg.cutoff }, cfg);
     assert.ok(start > middle && middle > end, `start ${start}, middle ${middle}, end ${end}`);
+});
+
+// cutoff 0 means "run to maxIterations". 3.4.0 measured step size against
+// log(cutoff) and got NaN, so every mutation landed on the same color.
+test('a cutoff of 0 runs to maxIterations with steps that still shrink', () => {
+    const cfg = { ...config(1), colorCount: 4, cutoff: 0, maxIterations: 2000, initialTemperatureSamples: 20 };
+    const state = prepareInitialState({ colors: [] }, cfg);
+    const result = runWithOrderOptimization(state, cfg);
+    const hex = result.colors.map(String);
+
+    assert.equal(result.iterations, 2000);
+    assert.ok(Number.isFinite(result.cost), `cost ${result.cost}`);
+    assert.equal(new Set(hex).size, 4, hex.join(' '));
+
+    const ending = { ...state, temperature: state.temperature * cfg.coolingRate ** cfg.maxIterations };
+    assert.ok(totalStep(state, cfg) > totalStep(ending, cfg));
 });

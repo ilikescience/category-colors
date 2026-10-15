@@ -14,15 +14,25 @@ const getNeighbor = (state, config, random = Math.random) => {
     }
     const colorIndex = mutableIndexes[Math.floor(random() * mutableIndexes.length)];
 
-    const { maxMutationDistance, minMutationDistance, cutoff } = config;
+    const { maxMutationDistance, minMutationDistance, cutoff, coolingRate, maxIterations } = config;
     // Temperature is in cost units and falls geometrically from its starting
-    // value to the cutoff. Steps shrink with progress along that schedule, from
-    // full size at the start to the minimum at the cutoff.
+    // value until the run ends: at the cutoff, or at maxIterations if that comes
+    // first. Steps shrink with progress along that schedule, from full size at
+    // the start to the minimum at the end.
     const start = state.initialTemperature ?? 1;
-    const progress = start > cutoff
-        ? Math.log(state.temperature / cutoff) / Math.log(start / cutoff)
-        : 0;
-    const scale = Math.min(1, Math.max(0, progress));
+    const end = Math.max(cutoff, start * coolingRate ** maxIterations);
+    let progress;
+    if (end > 0) {
+        progress = start > end ? Math.log(state.temperature / end) / Math.log(start / end) : 0;
+    } else {
+        // A cutoff of 0 means "run to maxIterations", and a long run's end
+        // temperature underflows to 0 too, so measure it in log space.
+        const logStart = Math.log(start);
+        const logEnd = logStart + maxIterations * Math.log(coolingRate);
+        progress = (Math.log(state.temperature) - logEnd) / (logStart - logEnd);
+    }
+    // A schedule with no finite end (no cutoff and no cap) keeps full-size steps.
+    const scale = Number.isNaN(progress) ? 1 : Math.min(1, Math.max(0, progress));
     const distance = minMutationDistance + (maxMutationDistance - minMutationDistance) * scale;
 
     const mutatedColor = mutateColorInSpace(colors[colorIndex], distance, config, distanceOptions, random);

@@ -292,8 +292,10 @@ The annealing schedule itself:
   start of the run.
 - `coolingRate` multiplies the temperature each iteration. Closer to 1 cools
   more slowly and runs longer. Mutations shrink from `maxMutationDistance` to
-  `minMutationDistance` over the same schedule.
-- `cutoff` is the temperature at which the run stops.
+  `minMutationDistance` over the same schedule, reaching the minimum when the
+  run ends.
+- `cutoff` is the temperature at which the run stops. Set it to 0 to run to
+  `maxIterations`.
 - `maxIterations` caps the run regardless of temperature.
 
 ## Channel locking
