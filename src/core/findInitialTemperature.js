@@ -26,7 +26,8 @@ const findInitialTemperature = (initialState, config, numSamples = 100, targetAc
     log(`Initial state cost: ${initialCost.toFixed(2)}`);
 
     for (let i = 0; i < numSamples; i++) {
-        // getNeighbor reads state.temperature (1 at this point) to scale mutation size.
+        // getNeighbor takes full-size steps here: prepareInitialState samples
+        // with temperature and initialTemperature both 1.
         const candidateState = getNeighbor(initialState, config, random);
         const deltaCost = candidateState.cost - initialCost;
 
@@ -41,11 +42,18 @@ const findInitialTemperature = (initialState, config, numSamples = 100, targetAc
         return 1000;
     }
 
-    const avgDelta = positiveDeltas.reduce((sum, val) => sum + val, 0) / positiveDeltas.length;
-    
-    const initialTemp = -avgDelta / Math.log(targetAcceptanceRate);
-    
-    log(`Average cost increase (ΔE): ${avgDelta.toFixed(2)}`);
+    // The median, not the mean: jnd scores (jnd / d)^4, so a few near-collisions
+    // give deltas many orders of magnitude above the rest, and a mean set by
+    // them made every early move a coin flip.
+    positiveDeltas.sort((a, b) => a - b);
+    const middle = positiveDeltas.length / 2;
+    const medianDelta = positiveDeltas.length % 2
+        ? positiveDeltas[Math.floor(middle)]
+        : (positiveDeltas[middle - 1] + positiveDeltas[middle]) / 2;
+
+    const initialTemp = -medianDelta / Math.log(targetAcceptanceRate);
+
+    log(`Median cost increase: ${medianDelta.toFixed(2)}`);
     log(`Target acceptance rate: ${targetAcceptanceRate * 100}%`);
     log(`Calculated Initial Temperature: ${initialTemp.toFixed(2)}`);
 

@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.4.0
+
+### Fixed
+
+- **The starting temperature was orders of magnitude too high.** It was set
+  from the mean cost increase of sampled moves, but jnd scores `(jnd / d)^4`,
+  so a few near-collisions dominated the mean: stock defaults started between
+  7.5e5 and 2e10. Mutation size was also scaled by the raw temperature, which
+  is in cost units, so any temperature above 1 meant a full-window jump. The
+  first ~14k–24k iterations of every run were random restarts, and
+  `initialAcceptanceRate` barely mattered. The starting temperature now comes
+  from the median cost increase (20 to 6e3 on stock defaults), and mutations
+  shrink from `maxMutationDistance` to `minMutationDistance` in step with the
+  cooling schedule, from the starting temperature down to `cutoff`.
+  `prepareInitialState` records the starting temperature as
+  `state.initialTemperature`. Over 10 trials with the benchmark's settings,
+  minimum ΔE goes from 22.2 to 24.3 at 8 colors and from 16.9 to 18.1 at 12,
+  and the worst CVD separation from 7.4 to 7.9 and 4.9 to 5.0. Runs reach the
+  cutoff in about 12k–18k iterations instead of ~30k, so they take about half
+  as long. `coolingRate` and `maxIterations` keep their defaults: cooling at
+  0.9995 doubles the run time for little further gain.
+
+### Changed
+
+- **Seeded runs do not reproduce 3.3.0 palettes.** The same state, config and
+  seed still give the same palette on every run, but a different one than
+  3.3.0 gave.
+
 ## 3.3.0
 
 ### Added

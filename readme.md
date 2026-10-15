@@ -283,9 +283,11 @@ The annealing schedule itself:
 
 - The starting temperature is derived by sampling random mutations.
   `initialTemperatureSamples` sets how many, and `initialAcceptanceRate` sets
-  the probability of accepting a cost-increasing move at the start of the run.
+  the probability of accepting a typical (median) cost-increasing move at the
+  start of the run.
 - `coolingRate` multiplies the temperature each iteration. Closer to 1 cools
-  more slowly and runs longer.
+  more slowly and runs longer. Mutations shrink from `maxMutationDistance` to
+  `minMutationDistance` over the same schedule.
 - `cutoff` is the temperature at which the run stops.
 - `maxIterations` caps the run regardless of temperature.
 

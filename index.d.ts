@@ -161,6 +161,8 @@ export interface Config {
 export interface State {
   colors: Color[];
   temperature: number;
+  /** The temperature the run started at; mutation size shrinks from it toward `config.cutoff`. */
+  initialTemperature?: number;
   iterations: number;
   cost: number;
   /** Present only when `config.recordHistory` is true. */

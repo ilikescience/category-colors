@@ -9,13 +9,16 @@ const prepareInitialState = (state, config) => {
     const workingState = {
         ...initializedState,
         iterations: state.iterations ?? 0,
-        temperature: state.temperature ?? 1,
+        // Sampled at full step size; the real starting temperature replaces it.
+        temperature: 1,
+        initialTemperature: 1,
     };
 
     workingState.cost = cost(workingState, config);
     const samples = config.initialTemperatureSamples ?? 100;
     const targetAcceptance = config.initialAcceptanceRate ?? 0.95;
     workingState.temperature = findInitialTemperature(workingState, config, samples, targetAcceptance, random);
+    workingState.initialTemperature = workingState.temperature;
 
     return workingState;
 };
