@@ -86,7 +86,7 @@ just-noticeable-difference threshold:
 | `--space <name>` | Distance space (default `lab65`) |
 | `-t, --threshold <num>` | Flag pairs below this ΔE (default `20`) |
 | `--cvd <type:severity>` | Add a CVD simulation, e.g. `deuteranomaly:0.5`. Repeatable |
-| `--palette-space <space>` | Report colors in this space instead of hex |
+| `--palette-space <space>` | Report colors in this space instead of hex. Not with `--gamut` |
 | `--gamut <name>` | Write colors for this gamut: `srgb` (hex, default), `display-p3`, `rec2020`, `a98-rgb`, `prophoto-rgb`, or `none` for `oklch()` |
 | `-f, --format <type>` | `text` (default) or `json` |
 | `-o, --output <path>` | Write to a file instead of stdout |

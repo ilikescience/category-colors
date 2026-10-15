@@ -117,4 +117,8 @@ test('CLI report writes colors in the gamut given by --gamut, and rejects unknow
     const bad = runCli(['report', '#ff0000', '#00ff00', '--gamut', 'p3']);
     assert.strictEqual(bad.status, 1);
     assert.match(bad.stderr, /Invalid --gamut value: p3/);
+
+    const both = runCli(['report', '#ff0000', '#00ff00', '--gamut', 'display-p3', '--palette-space', 'oklch']);
+    assert.strictEqual(both.status, 1);
+    assert.match(both.stderr, /--gamut and --palette-space/);
 });

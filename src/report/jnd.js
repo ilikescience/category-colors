@@ -121,7 +121,9 @@ const reportJndIssues = (palette, options = {}) => {
     if (!Array.isArray(palette) || palette.length < 2) {
         throw new Error('Palette must contain at least two colors.');
     }
-    const resolved = { ...defaultOptions, ...options };
+    // An option passed as undefined keeps its default, the same as one left out.
+    const given = Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined));
+    const resolved = { ...defaultOptions, ...given };
     resolved.distanceMethod = resolved.distanceMethod || resolved.deltaEMethod || 'ciede2000';
     resolved.distanceSpace = resolved.distanceSpace || resolved.distanceOptions?.space || 'lab65';
     resolved.distanceOptions = {

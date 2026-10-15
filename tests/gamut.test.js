@@ -134,3 +134,19 @@ test('the report and CLI summaries write colors in the requested gamut', () => {
     assert.deepEqual(buildJsonSummary(state, state, 1, 'display-p3').palette, palette);
     assert.match(buildJsonSummary(state, state, 1).palette[0], /^#/);
 });
+
+test('rgb mode cannot take a gamut wider than sRGB', () => {
+    assert.throws(() => resolveGamut({ mode: 'rgb', gamut: 'display-p3' }), /only covers sRGB/);
+    assert.deepEqual(resolveGamut({ mode: 'rgb', gamut: 'srgb' }), { name: 'srgb', mode: 'rgb' });
+});
+
+test('formatColor rejects inherited property names as gamuts', () => {
+    assert.throws(() => formatColor('#ff0000', 'toString'), /Unknown gamut: toString/);
+});
+
+test('an undefined report option keeps its default', () => {
+    // Two colors 1 ΔE apart: flagged at the default threshold of 20.
+    const report = reportJndIssues(['#ff0000', '#fe0000'], { jndThreshold: undefined, gamut: undefined });
+    assert.equal(report.totalIssues, 1);
+    assert.deepEqual(report.tests[0].issues[0].colors, ['#ff0000', '#fe0000']);
+});

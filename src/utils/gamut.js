@@ -18,7 +18,7 @@ const DEFAULT_GAMUT = 'srgb';
 /**
  * The gamut a colorSpace config asks for, as `{ name, mode }`, or null for no
  * limit. Throws on an unknown name, and on a gamut wider than sRGB for a mode
- * that can only describe sRGB colors (okhsl, hsl, hsv…), where it would
+ * that can only describe sRGB colors (rgb, okhsl, hsl, hsv…), where it would
  * silently do nothing.
  */
 const resolveGamut = (colorSpace = {}) => {
@@ -31,7 +31,9 @@ const resolveGamut = (colorSpace = {}) => {
             `config.colorSpace.gamut must be one of ${Object.keys(GAMUTS).join(', ')} or null; received ${name}.`
         );
     }
-    if (name !== DEFAULT_GAMUT && getMode(colorSpace.mode)?.gamut === 'rgb') {
+    // culori marks the sRGB-derived modes with gamut 'rgb' and rgb itself with true.
+    const modeGamut = getMode(colorSpace.mode)?.gamut;
+    if (name !== DEFAULT_GAMUT && (modeGamut === 'rgb' || (modeGamut === true && colorSpace.mode === 'rgb'))) {
         throw new Error(
             `config.colorSpace.gamut '${name}' is wider than ${colorSpace.mode} can describe: ${colorSpace.mode} only covers sRGB. Use a mode such as oklch.`
         );
@@ -70,7 +72,7 @@ const round = (value) => {
  * very colors the gamut was chosen for.
  */
 const formatColor = (color, gamut = DEFAULT_GAMUT) => {
-    const resolved = gamut === null ? null : GAMUTS[gamut];
+    const resolved = gamut !== null && Object.hasOwn(GAMUTS, gamut) ? GAMUTS[gamut] : null;
     if (resolved === 'rgb') {
         return formatHex(color);
     }

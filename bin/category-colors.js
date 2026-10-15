@@ -279,6 +279,10 @@ const parseReportOptions = (args) => {
         }
     }
 
+    if (options.paletteSpace && options.gamut !== undefined) {
+        throw new Error('--gamut and --palette-space both set how colors are written; pass one.');
+    }
+
     return options;
 };
 

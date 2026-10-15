@@ -209,8 +209,9 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
     // Snapping can push a clamped color back out: a chroma window whose minimum
     // is above what the gamut can show at that hue and lightness. The gamut
     // wins, since output in it would clip the color anyway, so clamp once more
-    // without snapping. Lightness and hue are kept, so only a chroma (or a/b)
-    // window gives way.
+    // without snapping. The clamp reduces OKLCh chroma: in oklch only a chroma
+    // window gives way; in another mode, such as lab, every channel can move a
+    // little and may leave its window.
     if (gamut !== null && !native) {
         const snapped = toModeObject(mode, coords);
         if (!isInGamut(snapped)) {
