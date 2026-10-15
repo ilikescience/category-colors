@@ -117,6 +117,9 @@ export interface EvalFunction {
   [option: string]: unknown;
 }
 
+/** CSS's predefined RGB color spaces, by their CSS names. */
+export type Gamut = 'srgb' | 'display-p3' | 'rec2020' | 'a98-rgb' | 'prophoto-rgb';
+
 export interface Config {
   evalFunctions: EvalFunction[];
   /** Temperature multiplier applied each iteration; closer to 1 cools slower. */
@@ -134,6 +137,13 @@ export interface Config {
     ranges?: (number[] | number[][])[];
     /** Overrides automatic cyclic-channel detection. Rarely needed. */
     wrap?: (number | boolean)[];
+    /**
+     * The colors the palette may use, apart from the mode it moves in.
+     * Defaults to `'srgb'`; `null` sets no limit. Colors outside it lose
+     * chroma, keeping lightness and hue. Wider than sRGB needs a mode that can
+     * describe those colors, such as oklch: okhsl, hsl and hsv cannot.
+     */
+    gamut?: Gamut | null;
   };
   /** Distance below which two colors count as confusable. */
   jnd?: number;
@@ -225,6 +235,13 @@ export function deltaE(a: ColorInput, b: ColorInput, options?: ColorDistance): n
 export function createColor(input: ColorInput, coords?: number[]): Color;
 /** The channel names of `mode`, in order, or undefined if unknown. */
 export function getChannels(mode: ColorMode): string[] | undefined;
+/**
+ * A color as a CSS string in a gamut: hex for `'srgb'` (the default),
+ * `color(display-p3 …)` and the like for wider gamuts, `oklch(…)` for `null`.
+ * Pass the run's `config.colorSpace.gamut`: hex for a wider gamut would clip.
+ */
+export function formatColor(color: ColorInput, gamut?: Gamut | null): string;
+export function formatPalette(colors: ColorInput[], gamut?: Gamut | null): string[];
 
 // ── Evaluators ──────────────────────────────────────────────────────────────
 
@@ -292,6 +309,11 @@ export interface JndReportOptions {
   cvdSimulations?: CvdSimulation[];
   /** Format reported colors in this space instead of hex. */
   paletteSpace?: ColorMode | null;
+  /**
+   * Without `paletteSpace`, colors are written for this gamut: hex for
+   * `'srgb'` (the default), `color(display-p3 …)` and so on, `oklch()` for null.
+   */
+  gamut?: Gamut | null;
   /**
    * Include every pair on each test, not just the failing ones. Defaults to
    * true. The pair list is O(n^2) per test and dominates a serialized report,

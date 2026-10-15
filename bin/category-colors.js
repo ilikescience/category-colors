@@ -3,7 +3,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { generatePalette, formatTextSummary, buildJsonSummary, toHexPalette, } from '../src/cli/generatePalette.js';
+import { generatePalette, formatTextSummary, buildJsonSummary, } from '../src/cli/generatePalette.js';
+import { GAMUTS, formatPalette } from '../src/utils/gamut.js';
 import { runReport, formatTextReport, } from '../src/cli/reportPalette.js';
 import { createDefaultConfig } from '../src/config/defaultConfig.js';
 
@@ -35,6 +36,8 @@ Report options (audit an existing palette for just-noticeable-difference issues)
   -t, --threshold <num>    JND threshold; pairs below it are flagged (default 20).
       --cvd <type:sev>     Add a CVD simulation, e.g. deuteranomaly:0.5 (repeatable).
       --palette-space <s>  Format reported colors in this space instead of hex.
+      --gamut <name>       Write colors in this gamut: srgb (hex, default), display-p3,
+                           rec2020, a98-rgb, prophoto-rgb, or none (oklch()).
       --pairs              Include every pair in JSON output, not just issues.
   -f, --format <type>      Output format: text (default), json.
   -o, --output <path>      Write the report to a file instead of stdout.
@@ -133,15 +136,15 @@ const writeOutput = (outputPath, content, { format, quiet }) => {
     }
 };
 
-const renderResult = (format, initialState, finalState, seed) => {
+const renderResult = (format, initialState, finalState, seed, gamut) => {
     switch (format) {
         case 'json':
-            return `${JSON.stringify(buildJsonSummary(initialState, finalState, seed), null, 2)}\n`;
+            return `${JSON.stringify(buildJsonSummary(initialState, finalState, seed, gamut), null, 2)}\n`;
         case 'palette':
-            return `${toHexPalette(finalState.colors).join('\n')}\n`;
+            return `${formatPalette(finalState.colors, gamut).join('\n')}\n`;
         case 'text':
         default:
-            return `${formatTextSummary(initialState, finalState, seed)}\n`;
+            return `${formatTextSummary(initialState, finalState, seed, gamut)}\n`;
     }
 };
 
@@ -152,7 +155,7 @@ const runCommand = (args) => {
         return;
     }
 
-    const { initialState, finalState, seed } = generatePalette({
+    const { config, initialState, finalState, seed } = generatePalette({
         configPath: options.configPath,
         config: options.seed === undefined ? undefined : { seed: options.seed },
         statePath: options.statePath,
@@ -160,7 +163,7 @@ const runCommand = (args) => {
         logProgress: !options.quiet,
     });
 
-    const output = renderResult(options.format, initialState, finalState, seed);
+    const output = renderResult(options.format, initialState, finalState, seed, config.colorSpace?.gamut);
     if (options.outputPath) {
         writeOutput(options.outputPath, output, options);
     } else {
@@ -234,6 +237,15 @@ const parseReportOptions = (args) => {
             case '--pairs':
                 options.includePairs = true;
                 break;
+            case '--gamut': {
+                const raw = nextValue(args, i, '--gamut');
+                if (raw !== 'none' && !Object.hasOwn(GAMUTS, raw)) {
+                    throw new Error(`Invalid --gamut value: ${raw}. Expected ${Object.keys(GAMUTS).join(', ')} or none.`);
+                }
+                options.gamut = raw === 'none' ? null : raw;
+                i += 1;
+                break;
+            }
             case '--palette-space':
                 options.paletteSpace = nextValue(args, i, '--palette-space');
                 i += 1;
@@ -292,6 +304,7 @@ const reportCommand = (args) => {
         jndThreshold: options.jndThreshold,
         cvdSimulations: options.cvdSimulations,
         paletteSpace: options.paletteSpace,
+        gamut: options.gamut,
         includePairs: options.includePairs,
     });
 

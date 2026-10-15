@@ -5,6 +5,7 @@ import { runSimulatedAnnealing, runWithOrderOptimization } from '../core/anneali
 import { prepareInitialState } from '../core/state.js';
 import { createDefaultConfig } from '../config/defaultConfig.js';
 import { createDefaultState } from '../config/defaultState.js';
+import { formatPalette } from '../utils/gamut.js';
 
 const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -149,9 +150,11 @@ const generatePalette = ({
 const toHexPalette = (colors) =>
     colors.map((color) => String(color));
 
-const formatTextSummary = (initialState, finalState, seed) => {
-    const initialColors = toHexPalette(initialState.colors);
-    const finalColors = toHexPalette(finalState.colors);
+// Summaries write colors in the run's gamut (config.colorSpace.gamut): hex for
+// sRGB, CSS color() for wider gamuts, where hex would clip them.
+const formatTextSummary = (initialState, finalState, seed, gamut) => {
+    const initialColors = formatPalette(initialState.colors, gamut);
+    const finalColors = formatPalette(finalState.colors, gamut);
     const costDifference = finalState.cost - initialState.cost;
     return [
         `Start colors: ${initialColors.join(', ')}`,
@@ -165,13 +168,13 @@ const formatTextSummary = (initialState, finalState, seed) => {
     ].join('\n');
 };
 
-const buildJsonSummary = (initialState, finalState, seed) => ({
-    palette: toHexPalette(finalState.colors),
+const buildJsonSummary = (initialState, finalState, seed, gamut) => ({
+    palette: formatPalette(finalState.colors, gamut),
     cost: finalState.cost,
     iterations: finalState.iterations,
     temperature: finalState.temperature,
     initial: {
-        palette: toHexPalette(initialState.colors),
+        palette: formatPalette(initialState.colors, gamut),
         cost: initialState.cost,
     },
     costDifference: finalState.cost - initialState.cost,

@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.7.0
+
+### Added
+
+- **`config.colorSpace.gamut` chooses the colors a palette may use,
+  separately from its mode.** It takes CSS's names: `'srgb'` (the default),
+  `'display-p3'`, `'rec2020'`, `'a98-rgb'` and `'prophoto-rgb'`, or `null`
+  for no limit. A color outside the gamut gives up chroma in OKLCh, keeping
+  its lightness and hue. A gamut wider than sRGB needs a mode that can
+  describe it, such as oklch; pairing one with okhsl, hsl or hsv throws. With
+  the default the optimizer behaves exactly as in 3.6.0, and seeded runs
+  reproduce it.
+- **Output follows the gamut.** `formatColor(color, gamut)` and
+  `formatPalette(colors, gamut)` write hex for sRGB, `color(display-p3 …)`
+  and the like for wider gamuts, and `oklch(…)` for `null`. The CLI's `run`
+  writes its output in the config's gamut, `reportJndIssues` takes a `gamut`
+  option, and `category-colors report` takes `--gamut <name>` (or `none`).
+  A color's `toString()` stays sRGB hex.
+- Over 8 seeds in oklch with a chroma window of `[0, 0.4]`, the minimum ΔE at
+  12 colors goes from 23.5 in sRGB to 24.0 in Display P3 and 24.7 in
+  Rec. 2020, at no cost in run time.
+
 ## 3.6.0
 
 ### Fixed

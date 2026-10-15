@@ -87,6 +87,7 @@ just-noticeable-difference threshold:
 | `-t, --threshold <num>` | Flag pairs below this ΔE (default `20`) |
 | `--cvd <type:severity>` | Add a CVD simulation, e.g. `deuteranomaly:0.5`. Repeatable |
 | `--palette-space <space>` | Report colors in this space instead of hex |
+| `--gamut <name>` | Write colors for this gamut: `srgb` (hex, default), `display-p3`, `rec2020`, `a98-rgb`, `prophoto-rgb`, or `none` for `oklch()` |
 | `-f, --format <type>` | `text` (default) or `json` |
 | `-o, --output <path>` | Write to a file instead of stdout |
 
@@ -266,6 +267,44 @@ config.colorSpace = {
   ],
 };
 ```
+
+### Gamut
+
+`colorSpace.gamut` sets which colors the palette may use, separately from the
+mode it moves in. It takes CSS's names: `'srgb'` (the default),
+`'display-p3'`, `'rec2020'`, `'a98-rgb'` or `'prophoto-rgb'`, or `null` for
+no limit.
+
+```js
+config.colorSpace = {
+  mode: 'oklch',
+  gamut: 'display-p3',
+  ranges: [[0.4, 0.85], [0.1, 0.37], [0, 360]],
+};
+```
+
+A color that lands outside the gamut gives up chroma, keeping its lightness
+and hue, so the clamp never undoes a move the optimizer made in those
+channels. When a chroma window asks for more than the gamut can show at some
+lightness and hue, the gamut wins.
+
+A gamut wider than sRGB needs a mode that can describe those colors: oklch,
+oklab, lab or lch. okhsl, hsl and hsv only cover sRGB, so pairing them with a
+wider gamut throws rather than silently doing nothing.
+
+Hex is sRGB only, so output follows the gamut: hex for sRGB,
+`color(display-p3 0.9963 0.6068 0.0155)` and the like for wider gamuts, and
+`oklch(…)` for `null`. Use `formatColor(color, gamut)` or
+`formatPalette(colors, gamut)` to write a palette's colors yourself: a color's
+`toString()` is always hex and clips anything outside sRGB. The CLI writes
+`run` output in the config's gamut, and `report --gamut <name>` does the same
+for an audit.
+
+What a wider gamut buys is modest. Over 8 seeds in oklch with a chroma window
+of `[0, 0.4]`, the minimum ΔE at 12 colors goes from 23.5 in sRGB to 24.0 in
+Display P3 and 24.7 in Rec. 2020; at 8 colors it barely moves. Two caveats:
+the CVD simulation (Machado et al.) and WCAG contrast are both defined for
+sRGB, so their numbers for colors outside it are extrapolations.
 
 ### Several windows per channel
 

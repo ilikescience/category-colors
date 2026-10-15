@@ -3,6 +3,7 @@ import { deltaE } from '../utils/deltaE.js';
 import { createColor, getChannels } from '../utils/paletteColor.js';
 import { converter } from 'culori';
 import { createDefaultConfig } from '../config/defaultConfig.js';
+import { formatColor as formatInGamut } from '../utils/gamut.js';
 
 const defaultOptions = {
     distanceMethod: 'ciede2000',
@@ -12,6 +13,9 @@ const defaultOptions = {
     jndThreshold: createDefaultConfig().jnd,
     cvdSimulations: [],
     paletteSpace: null,
+    // How colors are written when paletteSpace is not set: hex for sRGB,
+    // color(display-p3 …) and so on for wider gamuts, oklch() for null.
+    gamut: 'srgb',
     includePairs: true,
 };
 
@@ -32,9 +36,9 @@ const toColorInstance = (color) => {
     throw new Error('Unsupported color format in palette.');
 };
 
-const formatColor = (color, paletteSpace) => {
+const formatColor = (color, paletteSpace, gamut) => {
     if (!paletteSpace) {
-        return color.toString({ format: 'hex' });
+        return formatInGamut(color, gamut);
     }
     const converted = converter(paletteSpace)(color);
     const channels = getChannels(paletteSpace) || [];
@@ -54,8 +58,8 @@ const formatColor = (color, paletteSpace) => {
  * distance, before it is rounded for display.
  */
 const buildTest = (label, description, testColors, options) => {
-    const { distanceOptions, jndThreshold, paletteSpace, includePairs } = options;
-    const formatted = testColors.map((color) => formatColor(color, paletteSpace));
+    const { distanceOptions, jndThreshold, paletteSpace, gamut, includePairs } = options;
+    const formatted = testColors.map((color) => formatColor(color, paletteSpace, gamut));
 
     const pairs = [];
     const issues = [];

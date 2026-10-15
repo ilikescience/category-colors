@@ -107,3 +107,14 @@ test('CLI --seed reproduces a run and reports the seed', () => {
     assert.notStrictEqual(bad.status, 0);
     assert.match(bad.stderr, /--seed must be an integer/);
 });
+
+test('CLI report writes colors in the gamut given by --gamut, and rejects unknown ones', () => {
+    const p3 = ['color(display-p3 0.9963 0.6068 0.0155)', 'color(display-p3 0.9 0.6 0.02)'];
+    const result = runCli(['report', ...p3, '--gamut', 'display-p3', '--format', 'json']);
+    assert.strictEqual(result.status, 0, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout).tests[0].issues[0].colors, p3);
+
+    const bad = runCli(['report', '#ff0000', '#00ff00', '--gamut', 'p3']);
+    assert.strictEqual(bad.status, 1);
+    assert.match(bad.stderr, /Invalid --gamut value: p3/);
+});

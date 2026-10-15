@@ -29,6 +29,7 @@ const runReport = ({
     jndThreshold,
     cvdSimulations,
     paletteSpace,
+    gamut,
     includePairs = false,
 } = {}) => {
     const palette = loadPaletteColors({ palettePath, colors });
@@ -38,6 +39,7 @@ const runReport = ({
         jndThreshold,
         cvdSimulations,
         paletteSpace,
+        gamut,
         // Off by default: the text output only ever prints issues, and every
         // passing pair in the JSON is weight nobody asked for.
         includePairs,

@@ -1,4 +1,4 @@
-import type { Config, State, StateInput, ColorInput } from '../index.js';
+import type { Config, Gamut, State, StateInput, ColorInput } from '../index.js';
 
 export interface GeneratePaletteOptions {
   /** Path to a module exporting config overrides or a factory. */
@@ -43,12 +43,15 @@ export function buildState(options?: {
 /** Loads a config or state file, unwrapping a default export if present. */
 export function resolveModule(inputPath: string): unknown;
 
+/** sRGB hex, whatever the run's gamut. Summaries use `formatPalette` instead. */
 export function toHexPalette(colors: State['colors']): string[];
-export function formatTextSummary(initialState: State, finalState: State, seed?: number): string;
+/** `gamut` is the run's `config.colorSpace.gamut`; colors are written for it. */
+export function formatTextSummary(initialState: State, finalState: State, seed?: number, gamut?: Gamut | null): string;
 export function buildJsonSummary(
   initialState: State,
   finalState: State,
-  seed?: number
+  seed?: number,
+  gamut?: Gamut | null
 ): {
   palette: string[];
   cost: number;

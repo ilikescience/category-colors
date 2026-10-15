@@ -12,6 +12,7 @@ export { createDefaultState } from './config/defaultState.js';
 
 export { deltaE } from './utils/deltaE.js';
 export { createColor, getChannels } from './utils/paletteColor.js';
+export { formatColor, formatPalette } from './utils/gamut.js';
 
 export {
     evaluators,

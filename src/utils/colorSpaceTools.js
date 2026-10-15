@@ -1,18 +1,9 @@
 import * as culori from 'culori';
 import { randomVector } from './utils.js';
 import { createColor, getChannelWrap, getChannels, toModeObject } from './paletteColor.js';
+import { clampToGamut, formatColor, inGamut, resolveGamut } from './gamut.js';
 
-const { clampChroma, clampGamut, inGamut, converter } = culori;
-
-// culori's displayable() is exact, and a color converted out of sRGB and back
-// lands a hair past 0 or 1 (#009919 in oklch fails it). Hex output rounds that
-// away, so allow it rather than clamp and warn about a color that was fine.
-const toRgb = converter('rgb');
-const GAMUT_EPSILON = 1e-6;
-const displayable = (color) => {
-    const { r, g, b } = toRgb(color);
-    return [r, g, b].every((v) => v >= -GAMUT_EPSILON && v <= 1 + GAMUT_EPSILON);
-};
+const { clampGamut, converter } = culori;
 
 // A channel's constraint is a list of windows, each a sorted [min, max]. The
 // config may give one window or several per channel; on a cyclic channel such
@@ -180,19 +171,22 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
     let workingColor = paletteColor;
     let gamutAdjusted = false;
 
-    // culori gives oklch, oklab, lab, lch and friends no gamut, so inGamut()
-    // passes every color and the annealer would score colors that hex output
-    // later clips. Those modes are held to sRGB here, by reducing chroma in
-    // OKLCh so lightness and hue survive the clamp. Modes with a gamut keep
-    // culori's own check and clamp.
-    const gamutless = !culori.getMode(mode)?.gamut;
-    const isInGamut = gamutless ? displayable : inGamut(mode);
-    const clampToGamut = gamutless ? (c) => clampChroma(c, 'oklch') : clampGamut(mode);
+    // config.colorSpace.gamut (sRGB by default) bounds the colors, apart from
+    // the mode they move in. A mode whose own gamut is the one asked for
+    // (okhsl, hsl or rgb under sRGB) keeps culori's check and clamp, so its
+    // runs reproduce earlier releases. Any other pairing, such as oklch, which
+    // culori gives no gamut at all, is checked against the gamut and clamped by
+    // reducing chroma in OKLCh, keeping lightness and hue.
+    const gamut = resolveGamut(colorSpace);
+    const modeGamut = culori.getMode(mode)?.gamut;
+    const native = gamut !== null && (modeGamut === true ? mode : modeGamut) === gamut.mode;
+    const isInGamut = gamut === null ? () => true : native ? culori.inGamut(mode) : inGamut(gamut.mode);
+    const clamp = native ? clampGamut(mode) : clampToGamut(gamut?.mode);
 
     if (!isInGamut(paletteColor)) {
         gamutAdjusted = true;
         try {
-            const clamped = clampToGamut(paletteColor);
+            const clamped = clamp(paletteColor);
             if (clamped) {
                 workingColor = createColor(clamped);
             }
@@ -213,23 +207,24 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
         });
     let coords = snap(workingColor);
     // Snapping can push a clamped color back out: a chroma window whose minimum
-    // is above what sRGB can show at that hue and lightness. sRGB wins, since
-    // hex output would clip the color anyway, so clamp once more without
-    // snapping. Lightness and hue are kept, so only a chroma (or a/b) window
-    // gives way.
-    if (gamutless) {
+    // is above what the gamut can show at that hue and lightness. The gamut
+    // wins, since output in it would clip the color anyway, so clamp once more
+    // without snapping. Lightness and hue are kept, so only a chroma (or a/b)
+    // window gives way.
+    if (gamut !== null && !native) {
         const snapped = toModeObject(mode, coords);
-        if (!displayable(snapped)) {
+        if (!isInGamut(snapped)) {
             gamutAdjusted = true;
-            coords = normalizeCoords(converter(mode)(clampChroma(snapped, 'oklch')), channels, channelInfo);
+            coords = normalizeCoords(converter(mode)(clamp(snapped)), channels, channelInfo);
         }
     }
 
     if (!silent && gamutAdjusted) {
-        // Formatting converts to sRGB, so it waits until there is a warning.
-        const originalHex = typeof paletteColor.toString === 'function' ? paletteColor.toString() : '#000000';
+        // Formatting converts, so it waits until there is a warning. oklch()
+        // shows the color as given, where hex would clip it.
+        const original = formatColor(paletteColor, null);
         console.warn(
-            `[colorSpace] ${context}: color ${originalHex} adjusted to fit ${mode} gamut.`
+            `[colorSpace] ${context}: color ${original} adjusted to fit the ${gamut.name} gamut.`
         );
     }
 
