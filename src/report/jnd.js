@@ -2,7 +2,7 @@ import simulateCvd from '../core/simulateCvd.js';
 import { deltaE } from '../utils/deltaE.js';
 import { createColor, getChannels } from '../utils/paletteColor.js';
 import { converter } from 'culori';
-import { createDefaultConfig } from '../config/defaultConfig.js';
+import { DEFAULT_JND } from '../config/jnd.js';
 import { formatColor as formatInGamut } from '../utils/gamut.js';
 
 const defaultOptions = {
@@ -10,12 +10,9 @@ const defaultOptions = {
     distanceSpace: 'lab65',
     // The optimizer's threshold, so a report flags exactly what a default run
     // was steering away from.
-    jndThreshold: createDefaultConfig().jnd,
+    jndThreshold: DEFAULT_JND,
     cvdSimulations: [],
     paletteSpace: null,
-    // How colors are written when paletteSpace is not set: hex for sRGB,
-    // color(display-p3 …) and so on for wider gamuts, oklch() for null.
-    gamut: 'srgb',
     includePairs: true,
 };
 

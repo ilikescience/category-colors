@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { generatePalette, formatTextSummary, buildJsonSummary, } from '../src/cli/generatePalette.js';
 import { GAMUTS, formatPalette } from '../src/utils/gamut.js';
 import { runReport, formatTextReport, } from '../src/cli/reportPalette.js';
-import { createDefaultConfig } from '../src/config/defaultConfig.js';
+import { DEFAULT_JND } from '../src/config/jnd.js';
 
 const { version } = createRequire(import.meta.url)('../package.json');
 
@@ -189,7 +189,7 @@ const parseReportOptions = (args) => {
         quiet: false,
         distanceMethod: 'ciede2000',
         distanceSpace: 'lab65',
-        jndThreshold: createDefaultConfig().jnd,
+        jndThreshold: DEFAULT_JND,
         cvdSimulations: [],
         colors: [],
         includePairs: false,

@@ -1,9 +1,9 @@
 import * as culori from 'culori';
 import { randomVector } from './utils.js';
 import { createColor, getChannelWrap, getChannels, toModeObject } from './paletteColor.js';
-import { clampToGamut, formatColor, inGamut, resolveGamut } from './gamut.js';
+import { formatColor, resolveGamut } from './gamut.js';
 
-const { clampGamut, converter } = culori;
+const { converter } = culori;
 
 // A channel's constraint is a list of windows, each a sorted [min, max]. The
 // config may give one window or several per channel; on a cyclic channel such
@@ -172,21 +172,13 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
     let gamutAdjusted = false;
 
     // config.colorSpace.gamut (sRGB by default) bounds the colors, apart from
-    // the mode they move in. A mode whose own gamut is the one asked for
-    // (okhsl, hsl or rgb under sRGB) keeps culori's check and clamp, so its
-    // runs reproduce earlier releases. Any other pairing, such as oklch, which
-    // culori gives no gamut at all, is checked against the gamut and clamped by
-    // reducing chroma in OKLCh, keeping lightness and hue.
+    // the mode they move in; see resolveGamut for how each pairing is held.
     const gamut = resolveGamut(colorSpace);
-    const modeGamut = culori.getMode(mode)?.gamut;
-    const native = gamut !== null && (modeGamut === true ? mode : modeGamut) === gamut.mode;
-    const isInGamut = gamut === null ? () => true : native ? culori.inGamut(mode) : inGamut(gamut.mode);
-    const clamp = native ? clampGamut(mode) : clampToGamut(gamut?.mode);
 
-    if (!isInGamut(paletteColor)) {
+    if (gamut && !gamut.contains(paletteColor)) {
         gamutAdjusted = true;
         try {
-            const clamped = clamp(paletteColor);
+            const clamped = gamut.clamp(paletteColor);
             if (clamped) {
                 workingColor = createColor(clamped);
             }
@@ -200,23 +192,24 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
     }
 
     const channels = getChannels(mode) || [];
-    const snap = (source) =>
-        normalizeCoords(converter(mode)(source), channels, channelInfo).map((value, index) => {
-            const { windows, period, domainStart } = channelInfo[index];
-            return snapToWindows(value, windows, period, domainStart);
-        });
-    let coords = snap(workingColor);
+    const toMode = converter(mode);
+    const raw = normalizeCoords(toMode(workingColor), channels, channelInfo);
+    let coords = raw.map((value, index) => {
+        const { windows, period, domainStart } = channelInfo[index];
+        return snapToWindows(value, windows, period, domainStart);
+    });
     // Snapping can push a clamped color back out: a chroma window whose minimum
     // is above what the gamut can show at that hue and lightness. The gamut
     // wins, since output in it would clip the color anyway, so clamp once more
     // without snapping. The clamp reduces OKLCh chroma: in oklch only a chroma
     // window gives way; in another mode, such as lab, every channel can move a
-    // little and may leave its window.
-    if (gamut !== null && !native) {
+    // little and may leave its window. A snap that moved nothing cannot have
+    // left the gamut, so it skips the check.
+    if (gamut && !gamut.native && coords.some((value, index) => value !== raw[index])) {
         const snapped = toModeObject(mode, coords);
-        if (!isInGamut(snapped)) {
+        if (!gamut.contains(snapped)) {
             gamutAdjusted = true;
-            coords = normalizeCoords(converter(mode)(clamp(snapped)), channels, channelInfo);
+            coords = normalizeCoords(toMode(gamut.clamp(snapped)), channels, channelInfo);
         }
     }
 

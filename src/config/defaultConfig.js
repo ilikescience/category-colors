@@ -1,4 +1,5 @@
 import { energy, range, jnd, similarity } from '../evaluators/index.js';
+import { DEFAULT_JND } from './jnd.js';
 
 const createDefaultConfig = () => ({
     // The CVD terms model full dichromacy rather than anomalous trichromacy at
@@ -58,7 +59,7 @@ const createDefaultConfig = () => ({
             [0.3, 0.9], // lightness
         ],
     },
-    jnd: 20,
+    jnd: DEFAULT_JND,
     maxMutationDistance: 0.15,
     minMutationDistance: 0.005,
     similarityTarget: [

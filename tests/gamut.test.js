@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { converter, displayable, formatHex, parse, differenceCiede2000 } from 'culori';
+import { displayable, formatHex, parse, differenceCiede2000 } from 'culori';
 import { prepareInitialState } from '../src/core/state.js';
 import { runWithOrderOptimization } from '../src/core/annealing.js';
 import { createDefaultConfig } from '../src/config/defaultConfig.js';
 import { ensureColorInSpace } from '../src/utils/colorSpaceTools.js';
 import { reportJndIssues } from '../src/report/jnd.js';
-import { formatColor, formatPalette, resolveGamut } from '../src/utils/gamut.js';
+import { formatColor, formatPalette, inGamut, resolveGamut } from '../src/utils/gamut.js';
 import { createColor } from '../src/utils/paletteColor.js';
 import { buildJsonSummary } from '../src/cli/generatePalette.js';
 
@@ -76,35 +76,37 @@ test("the report flags pairs at the optimizer's threshold by default", () => {
 // ── config.colorSpace.gamut ──────────────────────────────────────────────────
 
 const p3Config = (gamut) => ({ ...oklchConfig([0.1, 0.37]), colorCount: 6, seed: 2, colorSpace: { mode: 'oklch', gamut, ranges: [[0.4, 0.85], [0.1, 0.37], [0, 360]] } });
-const inGamutOf = (mode) => (color) => {
-    const { r, g, b } = converter(mode)(color);
-    return [r, g, b].every((v) => v >= -1e-6 && v <= 1 + 1e-6);
-};
 
 test('the gamut defaults to sRGB and names CSS color spaces', () => {
-    assert.deepEqual(resolveGamut({ mode: 'oklch' }), { name: 'srgb', mode: 'rgb' });
-    assert.deepEqual(resolveGamut({ mode: 'oklch', gamut: 'display-p3' }), { name: 'display-p3', mode: 'p3' });
+    const named = (colorSpace) => {
+        const { name, mode, native } = resolveGamut(colorSpace);
+        return { name, mode, native };
+    };
+    assert.deepEqual(named({ mode: 'oklch' }), { name: 'srgb', mode: 'rgb', native: false });
+    assert.deepEqual(named({ mode: 'oklch', gamut: 'display-p3' }), { name: 'display-p3', mode: 'p3', native: false });
+    assert.deepEqual(named({ mode: 'okhsl' }), { name: 'srgb', mode: 'rgb', native: true });
+    assert.deepEqual(named({ mode: 'lrgb' }), { name: 'srgb', mode: 'rgb', native: true });
     assert.equal(resolveGamut({ mode: 'oklch', gamut: null }), null);
-    assert.throws(() => resolveGamut({ mode: 'oklch', gamut: 'p3' }), /must be one of srgb, display-p3/);
+    assert.throws(() => resolveGamut({ mode: 'oklch', gamut: 'p3' }), /Unknown gamut: p3\. Expected srgb, display-p3/);
 });
 
 // okhsl only describes sRGB colors, so a wider gamut there would do nothing.
 test('a gamut wider than the mode can describe is rejected', () => {
     assert.throws(() => resolveGamut({ mode: 'okhsl', gamut: 'display-p3' }), /wider than okhsl can describe/);
-    assert.deepEqual(resolveGamut({ mode: 'okhsl', gamut: 'srgb' }), { name: 'srgb', mode: 'rgb' });
+    assert.equal(resolveGamut({ mode: 'okhsl', gamut: 'srgb' }).native, true);
 });
 
 test('a display-p3 run uses colors outside sRGB and keeps every one inside P3', () => {
     const config = p3Config('display-p3');
     const result = runWithOrderOptimization(prepareInitialState({ colors: [] }, config), config);
-    assert.ok(result.colors.every(inGamutOf('p3')), result.colors.map((c) => formatColor(c, 'display-p3')).join(' '));
+    assert.ok(result.colors.every(inGamut('p3')), result.colors.map((c) => formatColor(c, 'display-p3')).join(' '));
     assert.ok(result.colors.some((color) => !displayable(color)), 'expected at least one color outside sRGB');
 });
 
 test('clamping to a wider gamut keeps lightness and hue', () => {
     const config = p3Config('display-p3');
     const color = ensureColorInSpace({ mode: 'oklch', l: 0.6, c: 0.37, h: 150 }, config, null, { silent: true });
-    assert.ok(inGamutOf('p3')(color));
+    assert.ok(inGamut('p3')(color));
     assert.ok(!displayable(color), 'P3 allows more chroma here than sRGB');
     assert.ok(Math.abs(color.l - 0.6) < 1e-6 && Math.abs(color.h - 150) < 1e-6, JSON.stringify(color));
 });
@@ -135,9 +137,12 @@ test('the report and CLI summaries write colors in the requested gamut', () => {
     assert.match(buildJsonSummary(state, state, 1).palette[0], /^#/);
 });
 
-test('rgb mode cannot take a gamut wider than sRGB', () => {
+test('an RGB mode cannot take a gamut wider than its own', () => {
     assert.throws(() => resolveGamut({ mode: 'rgb', gamut: 'display-p3' }), /only covers sRGB/);
-    assert.deepEqual(resolveGamut({ mode: 'rgb', gamut: 'srgb' }), { name: 'srgb', mode: 'rgb' });
+    assert.throws(() => resolveGamut({ mode: 'lrgb', gamut: 'display-p3' }), /only covers sRGB/);
+    assert.throws(() => resolveGamut({ mode: 'p3', gamut: 'rec2020' }), /only covers p3/);
+    assert.equal(resolveGamut({ mode: 'rgb', gamut: 'srgb' }).native, true);
+    assert.equal(resolveGamut({ mode: 'p3', gamut: 'display-p3' }).native, true);
 });
 
 test('formatColor rejects inherited property names as gamuts', () => {
@@ -149,4 +154,11 @@ test('an undefined report option keeps its default', () => {
     const report = reportJndIssues(['#ff0000', '#fe0000'], { jndThreshold: undefined, gamut: undefined });
     assert.equal(report.totalIssues, 1);
     assert.deepEqual(report.tests[0].issues[0].colors, ['#ff0000', '#fe0000']);
+});
+
+test('a colorSpace resolves once, and again when its gamut changes', () => {
+    const colorSpace = { mode: 'oklch' };
+    assert.equal(resolveGamut(colorSpace), resolveGamut(colorSpace));
+    colorSpace.gamut = 'display-p3';
+    assert.equal(resolveGamut(colorSpace).name, 'display-p3');
 });
