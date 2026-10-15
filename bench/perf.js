@@ -72,7 +72,6 @@ const appConfig = (colorCount) => {
         { function: jnd, weight: 0.1, cvd: { type: 'protanomaly', severity: 1 } },
         { function: jnd, weight: 0.1, cvd: { type: 'deuteranomaly', severity: 1 } },
         { function: jnd, weight: 0.1, cvd: { type: 'tritanomaly', severity: 1 } },
-        { function: jnd, weight: 0.05, cvd: { type: 'grayscale', severity: 1 } },
     ];
     return config;
 };

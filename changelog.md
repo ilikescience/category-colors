@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.5.0
+
+### Changed
+
+- **Grayscale is no longer a default evaluator.** `createDefaultConfig()`
+  drops its `jnd` term under `grayscale` (weight 0.05). Lightness alone spans
+  about 100 ΔE, so past five or six colors no palette can keep every pair
+  apart in it, and the term pulled against the others without being met.
+  Without it every other condition improves. Over 10 trials at 8 colors the
+  unimpaired minimum ΔE goes from 24.3 to 27.9, deuteranopia from 15.0 to
+  19.3, protanopia from 15.5 to 17.2 and tritanopia from 16.9 to 20.8. At 12
+  colors the unimpaired minimum goes from 18.1 to 22.0. The remaining CVD
+  weights are unchanged. Palettes from the default config, seeded or not,
+  differ from 3.4.0. To keep optimizing for print, add
+  `{ function: jnd, weight: 0.05, cvd: { type: 'grayscale', severity: 1 } }`
+  back to `evalFunctions`.
+- The benchmark's `min ΔE (CVD)` column now counts only the deficiencies.
+  Grayscale is still reported in the per-condition table.
+
 ## 3.4.0
 
 ### Fixed

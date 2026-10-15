@@ -15,12 +15,14 @@ const createDefaultConfig = () => ({
     //   deuteranopia 16.1 -> 16.3   protanopia 16.2 -> 14.9
     //   tritanopia   17.2 -> 15.6   grayscale   7.9 ->  7.7
     //
-    // The binding constraint is grayscale, not the deficiencies: worst-case is
-    // pinned to the grayscale row in both configurations, so the surplus came
-    // out of red-green headroom that was never the limit. Grayscale itself
-    // stays low because its own score stops improving past about 0.05 and only
-    // takes separation from the other terms. Lower the unimpaired `jnd` weight
-    // to trade ordinary separation back for more CVD headroom.
+    // Grayscale is not here. Lightness alone spans about 100 ΔE, so past five
+    // or six colors no palette can separate every pair in it, and its term
+    // pulled against the others without being met. Dropping it in 3.5.0 raised
+    // every deficiency's minimum along with the unimpaired one (8 colors, 10
+    // trials: unimpaired 24.3 -> 27.9, deuteranopia 15.0 -> 19.3, protanopia
+    // 15.5 -> 17.2, tritanopia 16.9 -> 20.8). Add it back for print, at a low
+    // weight. Lower the unimpaired `jnd` weight to trade ordinary separation
+    // back for more CVD headroom.
     evalFunctions: [
         { function: energy, weight: 0.15 },
         { function: range, weight: 0.15 },
@@ -39,11 +41,6 @@ const createDefaultConfig = () => ({
             function: jnd,
             weight: 0.1,
             cvd: { type: 'tritanopia', severity: 1 },
-        },
-        {
-            function: jnd,
-            weight: 0.05,
-            cvd: { type: 'grayscale', severity: 1 },
         },
         { function: similarity, weight: 1 },
     ],

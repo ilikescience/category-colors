@@ -77,7 +77,9 @@ export const scorePalette = (input) => {
         // Coefficient of variation; 0 would mean every pair is equidistant.
         uniformity: sd / mean,
         cvd,
-        minCvdDeltaE: Math.min(...Object.values(cvd)),
+        // Deficiencies only: grayscale is reported per condition but is not a
+        // deficiency, and the default config no longer optimizes for it.
+        minCvdDeltaE: Math.min(...CVD_CONDITIONS.filter((c) => c.type !== 'grayscale').map((c) => cvd[c.label])),
         minNameDifference: names.min,
         meanNameDifference: names.mean,
         minContrastWhite: Math.min(...contrasts.map((c) => wcagContrast(c, '#ffffff'))),

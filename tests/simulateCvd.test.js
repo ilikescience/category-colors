@@ -77,11 +77,11 @@ test('simulation preserves fixed flags and palette length', () => {
 
 // The defaults are a deliberate, measured choice; this pins them so a change
 // has to be intentional rather than incidental.
-test('the default config models both dichromacies, tritanopia and grayscale', () => {
+test('the default config models both dichromacies and tritanopia, not grayscale', () => {
     const conditions = createDefaultConfig()
         .evalFunctions.filter((entry) => entry.cvd)
         .map((entry) => `${entry.cvd.type}:${entry.cvd.severity}`);
     assert.deepEqual(conditions.sort(), [
-        'deuteranopia:1', 'grayscale:1', 'protanopia:1', 'tritanopia:1',
+        'deuteranopia:1', 'protanopia:1', 'tritanopia:1',
     ]);
 });

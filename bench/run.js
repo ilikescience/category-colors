@@ -410,8 +410,7 @@ const formatText = (result) => {
     for (const condition of CVD_CONDITIONS) {
         const parts = [`${pad(condition.label, 20, 'left')}`];
         // Every generator that ran, not a hardcoded two: this block is the only
-        // place the per-condition argument is visible, and the grayscale row is
-        // what the whole comparison turns on.
+        // place the per-condition argument is visible.
         for (const [name, summary] of generators) {
             parts.push(`${name} ${pad(num(summary.cvd[condition.label].mean), 6)}  `);
         }

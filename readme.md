@@ -191,29 +191,36 @@ with different settings:
 
 ### Color vision, and the trade it makes
 
-The default `evalFunctions` carries four `jnd` terms under simulation:
-protanopia, deuteranopia and tritanopia at weight 0.1 each, and grayscale at
-0.05, against an unimpaired `jnd` term at 1. They model full dichromacy rather
-than a milder anomaly, because optimizing the harder case carries the milder
-one.
+The default `evalFunctions` carries three `jnd` terms under simulation:
+protanopia, deuteranopia and tritanopia at weight 0.1 each, against an
+unimpaired `jnd` term at 1. They model full dichromacy rather than a milder
+anomaly, because optimizing the harder case carries the milder one.
 
 **Those weights look too low, and are not.** These terms saturate early:
 past a certain point they stop buying protection and only take separation from
-everything else. Measured over ten seeds at eight colors, against the 2.0.x
-weights (0.3 / 0.3 / 0.2 / 0.1 against an unimpaired 0.3):
+everything else. Moving from the 2.0.x weights (0.3 / 0.3 / 0.2 against an
+unimpaired 0.3) raised the unimpaired minimum ΔE from 19.0 to 22.6 over ten
+seeds at eight colors, while each deficiency's minimum moved by under two
+points.
 
-| | 2.0.x | current |
+**Grayscale is not in the default set.** Lightness alone spans about 100 ΔE,
+so past five or six colors no palette can keep every pair apart in it, and a
+grayscale term pulls against the others without ever being met. Dropping it in
+3.5.0 raised every other condition (ten trials at eight colors):
+
+| minimum ΔE | with grayscale | without |
 | --- | --- | --- |
-| minimum ΔE | 19.0 | 22.6 |
-| minimum ΔE, deuteranopia | 16.1 | 16.3 |
-| minimum ΔE, protanopia | 16.2 | 14.9 |
-| minimum ΔE, tritanopia | 17.2 | 15.6 |
-| minimum ΔE, grayscale | 7.9 | 7.7 |
+| unimpaired | 24.3 | 27.9 |
+| deuteranopia | 15.0 | 19.3 |
+| protanopia | 15.5 | 17.2 |
+| tritanopia | 16.9 | 20.8 |
+| grayscale | 7.9 | 1.0 |
 
-The number that decides whether a reader confuses two categories is the worst
-pair across *every* condition, and that is pinned to the grayscale row in both
-configurations — 7.9 against 7.7. The 3.6 points of ordinary separation came
-out of red-green headroom that was never the binding constraint.
+If the palette must survive print or photocopying, add it back at a low weight:
+
+```js
+config.evalFunctions.push({ function: jnd, weight: 0.05, cvd: { type: 'grayscale', severity: 1 } });
+```
 
 To trade back the other way, raise the CVD weights or lower the unimpaired
 `jnd` term. To drop conditions entirely:
@@ -230,9 +237,7 @@ Two honest notes on what these numbers mean. The deficiency filters are
 culori's, implementing Machado, Oliveira and Fernandes (2009); any CVD claim
 is relative to the model that produced it, so name the model when you quote a
 number. And `grayscale` is a luminance projection standing in for print or
-photocopying, not a physiological model of achromatopsia. Its score also stops
-improving past a weight of about 0.05, so pushing it harder only takes
-separation from the other terms.
+photocopying, not a physiological model of achromatopsia.
 
 `config.colorDistance` chooses the distance method and the space it is measured
 in (see the [culori distance docs](https://culorijs.org/docs/color-difference/)):
