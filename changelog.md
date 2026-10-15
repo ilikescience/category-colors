@@ -1,5 +1,32 @@
 # Changelog
 
+## 3.6.0
+
+### Fixed
+
+- **Colors left sRGB in oklch, oklab, lab and lch palettes.** culori gives
+  those modes no gamut, so `inGamut()` passed every color and the annealer
+  moved and scored colors that hex output later clipped: the reported scores
+  described colors you never got. Over 8 seeds at 8 colors with an oklch
+  chroma window of `[0, 0.4]`, 51 of 64 returned colors were outside sRGB,
+  and the minimum ΔE of the returned hexes averaged 13.9. Now none are
+  outside, and it averages 29.1. Modes without a gamut are held to sRGB by
+  reducing chroma in OKLCh, which keeps lightness and hue. When a chroma
+  window's minimum is more than sRGB can show at that lightness and hue, the
+  color takes the most chroma that fits, below the window. Modes with a gamut
+  of their own (okhsl, the default, hsl, rgb and so on) are unchanged, and
+  their seeded runs reproduce 3.5.1 exactly.
+
+### Changed
+
+- **The JND report's default threshold is 20, the same as the optimizer's
+  `jnd`.** `reportJndIssues` and `category-colors report` used to default to
+  25, so a palette could pass the optimizer and still show issues in the
+  report: one showed 13 issues on categorycolors.com and 26 in the CLI. Both
+  now read the default from `createDefaultConfig().jnd`. Reports that don't
+  pass a threshold flag fewer pairs than before. Pass `jndThreshold: 25` or
+  `--threshold 25` to keep the old cut.
+
 ## 3.5.1
 
 ### Fixed

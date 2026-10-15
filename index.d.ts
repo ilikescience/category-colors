@@ -287,7 +287,7 @@ export interface JndReportOptions {
   distanceMethod?: DistanceMethod;
   distanceSpace?: ColorMode;
   cmc?: { l: number; c: number };
-  /** Pairs below this distance are flagged. Defaults to 25. */
+  /** Pairs below this distance are flagged. Defaults to 20, the same as `Config.jnd`. */
   jndThreshold?: number;
   cvdSimulations?: CvdSimulation[];
   /** Format reported colors in this space instead of hex. */

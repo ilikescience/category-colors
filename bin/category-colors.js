@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { generatePalette, formatTextSummary, buildJsonSummary, toHexPalette, } from '../src/cli/generatePalette.js';
 import { runReport, formatTextReport, } from '../src/cli/reportPalette.js';
+import { createDefaultConfig } from '../src/config/defaultConfig.js';
 
 const { version } = createRequire(import.meta.url)('../package.json');
 
@@ -31,7 +32,7 @@ Report options (audit an existing palette for just-noticeable-difference issues)
   -p, --palette <path>     Path to a JS/JSON module exporting a colors array or state object.
   -m, --method <name>      Color-distance method (default ciede2000).
       --space <name>       Color space used for distance (default lab65).
-  -t, --threshold <num>    JND threshold; pairs below it are flagged (default 25).
+  -t, --threshold <num>    JND threshold; pairs below it are flagged (default 20).
       --cvd <type:sev>     Add a CVD simulation, e.g. deuteranomaly:0.5 (repeatable).
       --palette-space <s>  Format reported colors in this space instead of hex.
       --pairs              Include every pair in JSON output, not just issues.
@@ -185,7 +186,7 @@ const parseReportOptions = (args) => {
         quiet: false,
         distanceMethod: 'ciede2000',
         distanceSpace: 'lab65',
-        jndThreshold: 25,
+        jndThreshold: createDefaultConfig().jnd,
         cvdSimulations: [],
         colors: [],
         includePairs: false,

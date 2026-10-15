@@ -2,7 +2,17 @@ import * as culori from 'culori';
 import { randomVector } from './utils.js';
 import { createColor, getChannelWrap, getChannels, toModeObject } from './paletteColor.js';
 
-const { clampGamut, inGamut, converter } = culori;
+const { clampChroma, clampGamut, inGamut, converter } = culori;
+
+// culori's displayable() is exact, and a color converted out of sRGB and back
+// lands a hair past 0 or 1 (#009919 in oklch fails it). Hex output rounds that
+// away, so allow it rather than clamp and warn about a color that was fine.
+const toRgb = converter('rgb');
+const GAMUT_EPSILON = 1e-6;
+const displayable = (color) => {
+    const { r, g, b } = toRgb(color);
+    return [r, g, b].every((v) => v >= -GAMUT_EPSILON && v <= 1 + GAMUT_EPSILON);
+};
 
 // A channel's constraint is a list of windows, each a sorted [min, max]. The
 // config may give one window or several per channel; on a cyclic channel such
@@ -170,10 +180,19 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
     let workingColor = paletteColor;
     let gamutAdjusted = false;
 
-    if (!inGamut(mode)(paletteColor)) {
+    // culori gives oklch, oklab, lab, lch and friends no gamut, so inGamut()
+    // passes every color and the annealer would score colors that hex output
+    // later clips. Those modes are held to sRGB here, by reducing chroma in
+    // OKLCh so lightness and hue survive the clamp. Modes with a gamut keep
+    // culori's own check and clamp.
+    const gamutless = !culori.getMode(mode)?.gamut;
+    const isInGamut = gamutless ? displayable : inGamut(mode);
+    const clampToGamut = gamutless ? (c) => clampChroma(c, 'oklch') : clampGamut(mode);
+
+    if (!isInGamut(paletteColor)) {
         gamutAdjusted = true;
         try {
-            const clamped = clampGamut(mode)(paletteColor);
+            const clamped = clampToGamut(paletteColor);
             if (clamped) {
                 workingColor = createColor(clamped);
             }
@@ -186,12 +205,25 @@ const ensureColorInSpace = (color, config, _distanceOptions, { context = 'color'
         }
     }
 
-    const converted = converter(mode)(workingColor);
     const channels = getChannels(mode) || [];
-    const coords = normalizeCoords(converted, channels, channelInfo).map((value, index) => {
-        const { windows, period, domainStart } = channelInfo[index];
-        return snapToWindows(value, windows, period, domainStart);
-    });
+    const snap = (source) =>
+        normalizeCoords(converter(mode)(source), channels, channelInfo).map((value, index) => {
+            const { windows, period, domainStart } = channelInfo[index];
+            return snapToWindows(value, windows, period, domainStart);
+        });
+    let coords = snap(workingColor);
+    // Snapping can push a clamped color back out: a chroma window whose minimum
+    // is above what sRGB can show at that hue and lightness. sRGB wins, since
+    // hex output would clip the color anyway, so clamp once more without
+    // snapping. Lightness and hue are kept, so only a chroma (or a/b) window
+    // gives way.
+    if (gamutless) {
+        const snapped = toModeObject(mode, coords);
+        if (!displayable(snapped)) {
+            gamutAdjusted = true;
+            coords = normalizeCoords(converter(mode)(clampChroma(snapped, 'oklch')), channels, channelInfo);
+        }
+    }
 
     if (!silent && gamutAdjusted) {
         // Formatting converts to sRGB, so it waits until there is a warning.

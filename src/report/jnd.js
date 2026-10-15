@@ -2,11 +2,14 @@ import simulateCvd from '../core/simulateCvd.js';
 import { deltaE } from '../utils/deltaE.js';
 import { createColor, getChannels } from '../utils/paletteColor.js';
 import { converter } from 'culori';
+import { createDefaultConfig } from '../config/defaultConfig.js';
 
 const defaultOptions = {
     distanceMethod: 'ciede2000',
     distanceSpace: 'lab65',
-    jndThreshold: 25,
+    // The optimizer's threshold, so a report flags exactly what a default run
+    // was steering away from.
+    jndThreshold: createDefaultConfig().jnd,
     cvdSimulations: [],
     paletteSpace: null,
     includePairs: true,

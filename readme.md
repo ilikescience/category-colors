@@ -84,7 +84,7 @@ just-noticeable-difference threshold:
 | `-p, --palette <path>` | Module exporting a colors array or state object |
 | `-m, --method <name>` | Distance method (default `ciede2000`) |
 | `--space <name>` | Distance space (default `lab65`) |
-| `-t, --threshold <num>` | Flag pairs below this ΔE (default `25`) |
+| `-t, --threshold <num>` | Flag pairs below this ΔE (default `20`) |
 | `--cvd <type:severity>` | Add a CVD simulation, e.g. `deuteranomaly:0.5`. Repeatable |
 | `--palette-space <space>` | Report colors in this space instead of hex |
 | `-f, --format <type>` | `text` (default) or `json` |
@@ -448,7 +448,7 @@ import { reportJndIssues } from 'category-colors/report';
 const result = reportJndIssues(['#ff0000', '#f20000', '#00ff00', '#0000ff'], {
   distanceMethod: 'ciede2000',
   distanceSpace: 'lab65',
-  jndThreshold: 25,
+  jndThreshold: 20,
   cvdSimulations: [
     { type: 'protanomaly', severity: 1 },
     { type: 'deuteranomaly', severity: 0.5 },
